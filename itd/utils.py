@@ -1,13 +1,15 @@
 # новая версия от чат гпт. у меня самого не получилось сделать
+import re
 from itd.models.post import Span
 from itd.enums import SpanType
 
 
 class Tag:
-    def __init__(self, open: str, close: str, type: SpanType):
+    def __init__(self, open: str, close: str, type: SpanType, url: str | None = None):
         self.open = open
         self.close = close
         self.type = type
+        self.url = url
 
 
 def _parse_spans(text: str, tags: list[Tag]) -> tuple[str, list[Span]]:

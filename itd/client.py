@@ -23,7 +23,7 @@ from itd.routes.pins import get_pins, remove_pin, set_pin
 
 from itd.models.comment import Comment
 from itd.models.notification import Notification
-from itd.models.post import Post, NewPost, PollData, Poll
+from itd.models.post import Post, NewPost, PollData, Poll, Span
 from itd.models.clan import Clan
 from itd.models.hashtag import Hashtag
 from itd.models.user import User, UserProfileUpdate, UserPrivacy, UserFollower, UserWhoToFollow, UserPrivacyData
@@ -644,11 +644,12 @@ class Client:
 
 
     @refresh_on_error
-    def create_post(self, content: str | None = None, wall_recipient_id: UUID | None = None, attachment_ids: list[UUID] = [], poll: PollData | None = None) -> NewPost:
+    def create_post(self, content: str | None = None, spans: list[Span] = [], wall_recipient_id: UUID | None = None, attachment_ids: list[UUID] = [], poll: PollData | None = None) -> NewPost:
         """Создать пост
 
         Args:
             content (str | None, optional): Содержимое. Defaults to None.
+            spans (lsit[Span], optional): Стилизация содержимого. Defaults to [].
             wall_recipient_id (UUID | None, optional): UUID пользователя (чтобы создать пост ему на стене). Defaults to None.
             attachment_ids (list[UUID], optional): UUID вложений. Defaults to [].
             poll (PollData | None, optional): Опрос. Defaults to None.
@@ -660,7 +661,7 @@ class Client:
         Returns:
             NewPost: Новый пост
         """
-        res = create_post(self.token, content, wall_recipient_id, attachment_ids, poll.poll if poll else None)
+        res = create_post(self.token, content, [span.model_dump(mode="json") for span in spans], wall_recipient_id, attachment_ids, poll.poll if poll else None)
 
         if res.json().get('error', {}).get('code') == 'NOT_FOUND':
             raise NotFound('Wall recipient')

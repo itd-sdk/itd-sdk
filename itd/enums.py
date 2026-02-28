@@ -49,3 +49,5 @@ class SpanType(Enum):
     SPOILER = 'spoiler' # спойлер
     UNDERLINE = 'underline' # подчеркнутый
     HASHTAG = 'hashtag' # хэштэг ? (появляется только при получении постов, при создании нету)
+    LINK = 'link' # ссылка
+    QUOTE = 'quote' # цитата

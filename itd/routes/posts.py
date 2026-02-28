@@ -5,8 +5,10 @@ from itd.request import fetch
 from itd.enums import PostsTab
 from itd.models.post import NewPoll
 
-def create_post(token: str, content: str | None = None, wall_recipient_id: UUID | None = None, attachment_ids: list[UUID] = [], poll: NewPoll | None = None):
+def create_post(token: str, content: str | None = None, spans: list[dict] = [], wall_recipient_id: UUID | None = None, attachment_ids: list[UUID] = [], poll: NewPoll | None = None):
     data: dict = {'content': content or ''}
+    if spans:
+        data['spans'] = spans
     if wall_recipient_id:
         data['wallRecipientId'] = str(wall_recipient_id)
     if attachment_ids:
