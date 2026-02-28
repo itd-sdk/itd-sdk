@@ -59,6 +59,7 @@ class Span(BaseModel):
     length: int
     offset: int
     type: SpanType
+    url: str | None = None
 
 
 class _PostCounts(TextObject):
