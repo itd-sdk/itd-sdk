@@ -1,0 +1,19 @@
+site_name: itd-sdk
+
+theme:
+  name: material
+
+  features:
+    - navigation.footer
+    - content.code.annotate
+
+  palette:
+    scheme: slate
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
