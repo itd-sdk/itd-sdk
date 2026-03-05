@@ -134,3 +134,11 @@ class EmptyOptions(Exception):
 class ProfileRequired(Exception):
     def __str__(self) -> str:
         return 'No profile. Please create your profile first'
+
+class VideoRequiresVerification(Exception):
+    def __str__(self) -> str:
+        return 'Video uploading allowed only for verificated users'
+
+class InvalidFileType(Exception):
+    def __str__(self) -> str:
+        return 'Invalid file extension'

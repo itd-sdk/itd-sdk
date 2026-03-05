@@ -40,7 +40,8 @@ from itd.exceptions import (
     NoCookie, NoAuthData, SamePassword, InvalidOldPassword, NotFound, ValidationError, UserBanned,
     PendingRequestExists, Forbidden, UsernameTaken, CantFollowYourself, Unauthorized,
     CantRepostYourPost, AlreadyReposted, AlreadyReported, TooLarge, PinNotOwned, NoContent,
-    AlreadyFollowing, NotFoundOrForbidden, OptionsNotBelong, NotMultipleChoice, EmptyOptions
+    AlreadyFollowing, NotFoundOrForbidden, OptionsNotBelong, NotMultipleChoice, EmptyOptions,
+    VideoRequiresVerification, InvalidFileType
 )
 
 
@@ -649,7 +650,7 @@ class Client:
 
         Args:
             content (str | None, optional): Содержимое. Defaults to None.
-            spans (lsit[Span], optional): Стилизация содержимого. Defaults to [].
+            spans (list[Span], optional): Стилизация содержимого. Defaults to [].
             wall_recipient_id (UUID | None, optional): UUID пользователя (чтобы создать пост ему на стене). Defaults to None.
             attachment_ids (list[UUID], optional): UUID вложений. Defaults to [].
             poll (PollData | None, optional): Опрос. Defaults to None.
@@ -658,6 +659,7 @@ class Client:
             NotFound: Пользователь не найден
             Forbidden: Некоторые файлы не принадлежат вам
             ValidationError: Ошибка валидации
+            VideoRequiresVerification: Для загрузки видео нужна верификация
 
         Returns:
             NewPost: Новый пост
@@ -668,6 +670,8 @@ class Client:
             raise NotFound('Wall recipient')
         if res.json().get('error', {}).get('message') == 'Некоторые файлы не принадлежат вам':
             raise Forbidden('post - some files not owned')
+        if res.json().get('error', {}).get('code') == 'VIDEO_REQUIRES_VERIFICATION':
+            raise VideoRequiresVerification()
         if res.status_code == 422 and 'found' in res.json():
             raise ValidationError(*list(res.json()['found'].items())[0])
         res.raise_for_status()
@@ -1004,10 +1008,18 @@ class Client:
             name (str): Имя файла
             data (BufferedReader): Содержимое (open('имя', 'rb'))
 
+        Raises:
+            TooLarge: Слишком большой файл
+            InvalidFileType: Неправильный тип файла
+
         Returns:
             File: Файл
         """
         res = upload_file(self.token, name, data)
+        if res.status_code == 413:
+            raise TooLarge()
+        if res.json().get('error', {}).get('message') == 'Недопустимый тип файла':
+            raise InvalidFileType()
         res.raise_for_status()
 
         return File.model_validate(res.json())
