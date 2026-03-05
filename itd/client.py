@@ -41,7 +41,7 @@ from itd.exceptions import (
     PendingRequestExists, Forbidden, UsernameTaken, CantFollowYourself, Unauthorized,
     CantRepostYourPost, AlreadyReposted, AlreadyReported, TooLarge, PinNotOwned, NoContent,
     AlreadyFollowing, NotFoundOrForbidden, OptionsNotBelong, NotMultipleChoice, EmptyOptions,
-    VideoRequiresVerification, InvalidFileType, EditExpired
+    RequiresVerification, InvalidFileType, EditExpired
 )
 
 
@@ -180,6 +180,7 @@ class Client:
 
         Raises:
             ValidationError: Ошибка валидации
+            InvalidFileType: Баннер может быть только изображением
 
         Returns:
             UserProfileUpdate: Обновленный профиль
@@ -187,6 +188,10 @@ class Client:
         res = update_profile(self.token, bio, display_name, username, banner_id)
         if res.status_code == 422 and 'found' in res.json():
             raise ValidationError(*list(res.json()['found'].items())[0])
+        if res.json().get('error', {}).get('message') == 'Баннер может быть только изображением':
+            raise InvalidFileType()
+        if res.json().get('error', {}).get('code') == 'GIF_REQUIRES_VERIFICATION':
+            raise RequiresVerification('GIF banner')
         if res.json().get('error', {}).get('code') == 'USERNAME_TAKEN':
             raise UsernameTaken()
         res.raise_for_status()
@@ -659,7 +664,7 @@ class Client:
             NotFound: Пользователь не найден
             Forbidden: Некоторые файлы не принадлежат вам
             ValidationError: Ошибка валидации
-            VideoRequiresVerification: Для загрузки видео нужна верификация
+            RequiresVerification: Для загрузки видео нужна верификация
 
         Returns:
             NewPost: Новый пост
@@ -671,7 +676,7 @@ class Client:
         if res.json().get('error', {}).get('message') == 'Некоторые файлы не принадлежат вам':
             raise Forbidden('post - some files not owned')
         if res.json().get('error', {}).get('code') == 'VIDEO_REQUIRES_VERIFICATION':
-            raise VideoRequiresVerification()
+            raise RequiresVerification('Video')
         if res.status_code == 422 and 'found' in res.json():
             raise ValidationError(*list(res.json()['found'].items())[0])
         res.raise_for_status()
@@ -689,7 +694,6 @@ class Client:
         Raises:
             EmptyOptions: Пустые варианты
             NotFound: Пост не найден или в посте нет опроса
-            NotFound: _description_
             OptionsNotBelong: Неверные варианты (варинты не пренадлежат опросу)
             NotMultipleChoice: Можно выбрать только 1 вариант (для опросов, где не разрешены несколько ответов)
 
