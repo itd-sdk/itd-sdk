@@ -148,3 +148,7 @@ class InvalidFileType(Exception):
 class EditExpired(Exception):
     def __str__(self) -> str:
         return 'Editing allowed only in first 48 hours after posting'
+
+class UploadError(Exception):
+    def __str__(self) -> str:
+        return 'Failed to upload file'

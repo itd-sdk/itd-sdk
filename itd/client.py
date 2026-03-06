@@ -41,7 +41,7 @@ from itd.exceptions import (
     PendingRequestExists, Forbidden, UsernameTaken, CantFollowYourself, Unauthorized,
     CantRepostYourPost, AlreadyReposted, AlreadyReported, TooLarge, PinNotOwned, NoContent,
     AlreadyFollowing, NotFoundOrForbidden, OptionsNotBelong, NotMultipleChoice, EmptyOptions,
-    RequiresVerification, InvalidFileType, EditExpired
+    RequiresVerification, InvalidFileType, EditExpired, UploadError
 )
 
 
@@ -1018,6 +1018,7 @@ class Client:
         Raises:
             TooLarge: Слишком большой файл
             InvalidFileType: Неправильный тип файла
+            UploadError: Ошибка загрузки файла
 
         Returns:
             File: Файл
@@ -1027,6 +1028,8 @@ class Client:
             raise TooLarge()
         if res.json().get('error', {}).get('message') == 'Недопустимый тип файла':
             raise InvalidFileType()
+        if res.json().get('error', {}).get('code') == 'UPLOAD_ERROR':
+            raise UploadError()
         res.raise_for_status()
 
         return File.model_validate(res.json())
