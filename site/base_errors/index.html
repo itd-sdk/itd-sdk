@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../auth/">
       
       
-        <link rel="next" href="../base_errors/">
+        <link rel="next" href="../posts/">
       
       
         
@@ -23,7 +23,7 @@
     
     
       
-        <title>Авторизация - itd-sdk</title>
+        <title>Основые ошибки - itd-sdk</title>
       
     
     
@@ -108,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Авторизация
+              Основые ошибки
             
           </span>
         </div>
@@ -228,6 +228,33 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Авторизация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -247,7 +274,7 @@
   <span class="md-ellipsis">
     
   
-    Авторизация
+    Основые ошибки
   
 
     
@@ -265,7 +292,7 @@
   <span class="md-ellipsis">
     
   
-    Авторизация
+    Основые ошибки
   
 
     
@@ -291,10 +318,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
+  <a href="#ratelimitexceeded" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Способы авторизации
+        RateLimitExceeded
       
     </span>
   </a>
@@ -302,13 +329,124 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#invalidtoken" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Инициализация
+        InvalidToken
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#accountbanned" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AccountBanned
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#profilerequired" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProfileRequired
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ошибки авторизации (при auth запросах)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ошибки авторизации (при auth запросах)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#invalidcookie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InvalidCookie
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="InvalidCookie">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#session-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session not found
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-refresh-token" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No refresh token
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#session-expired" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session expired
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#session-revoked" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session revoked
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unauthorized" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unauthorized
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -316,33 +454,6 @@
   
 </nav>
       
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../base_errors/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Основые ошибки
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -401,10 +512,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
+  <a href="#ratelimitexceeded" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Способы авторизации
+        RateLimitExceeded
       
     </span>
   </a>
@@ -412,13 +523,124 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#invalidtoken" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Инициализация
+        InvalidToken
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#accountbanned" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AccountBanned
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#profilerequired" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProfileRequired
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ошибки авторизации (при auth запросах)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ошибки авторизации (при auth запросах)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#invalidcookie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InvalidCookie
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="InvalidCookie">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#session-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session not found
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-refresh-token" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No refresh token
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#session-expired" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session expired
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#session-revoked" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session revoked
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unauthorized" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unauthorized
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -439,50 +661,43 @@
 
 
 
-<h1 id="_1">Авторизация</h1>
-<h2 id="_2">Способы авторизации</h2>
-<p>Чтобы получить доступ к аккаунту, потребуется <code>access</code> или <code>refresh</code> token.</p>
-<ul>
-<li><code>access_token</code> - JWT токен, действует около 15 минут, обновляется при перезагрузке страницы.</li>
-<li><code>refresh_token</code> - Случайная строка, действует более месяца, обновляется при выходе и повторном входе.</li>
-</ul>
-<p>Найти <code>access token</code> можно в любом запросе в DevTools (открывается нажатием <code>F12</code>) во вкладке <code>Сеть</code> / <code>Network</code>:
-<img alt="access token" src="../access-token.png" /></p>
-<p>Найти <code>refresh token</code> можно найти в запросе <code>/auth/refresh</code>:
-<img alt="refresh token" src="../refresh-token.png" /></p>
-<div class="admonition info">
-<p class="admonition-title">Info</p>
-<p>Самое главное - "refresh token". Остальные куки - DDoS Guard и Яндекс Метрика</p>
-</div>
-<h2 id="_3">Инициализация</h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">refresh</label><label for="__tabbed_1_2">access</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">itd</span><span class="w"> </span><span class="kn">import</span> <span class="n">ITDClient</span>
-
-<span class="n">c</span> <span class="o">=</span> <span class="n">ITDClient</span><span class="p">(</span><span class="n">cookies</span><span class="o">=</span><span class="s1">&#39;refresh_token=xxx&#39;</span><span class="p">)</span>
-</code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">itd</span><span class="w"> </span><span class="kn">import</span> <span class="n">ITDClient</span>
-
-<span class="n">c</span> <span class="o">=</span> <span class="n">ITDClient</span><span class="p">(</span><span class="s1">&#39;eyXXX&#39;</span><span class="p">)</span>
-</code></pre></div>
-</div>
-</div>
-</div>
-<!--
-=== "v2.0"
-
-    ```python
-    from itd import ITDClient
-
-    # через refresh token
-    c = ITDClient('xxx')
-
-    # через access token
-    c = ITDClient(access_token='eyXXX')
-    ``` -->
+<h1 id="_1">Основые ошибки</h1>
+<p>"Код" - код ошибки из JSON ответа сервера. По нему выбирается, какая ошибка должна вызваться.
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;error&quot;</span><span class="p">:{</span><span class="nt">&quot;code&quot;</span><span class="p">:</span><span class="s2">&quot;GIF_REQUIRES_VERIFICATION&quot;</span><span class="p">,</span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="s2">&quot;GIF-баннер доступен только верифицированным пользователям&quot;</span><span class="p">}}</span>
+<span class="err">#</span><span class="w">                 </span><span class="err">^^^^^^^^^^^^^^^^^^^^^^^^^^^</span>
+<span class="err">#</span><span class="w">                 </span><span class="err">|</span><span class="w">           </span><span class="err">код</span><span class="w">           </span><span class="err">|</span>
+</code></pre></div></p>
+<h2 id="ratelimitexceeded">RateLimitExceeded</h2>
+<p>Код: <code>RATE_LIMIT_EXCEEDED</code><br />
+Возникает при слишком большом количестве запросов. В сообщении может содержаться время в секундах - сколько надо подождать до разблокировки. Если написано <code>0</code> - сервер не указал время.</p>
+<h2 id="invalidtoken">InvalidToken</h2>
+<p>Код: <code>UNAUTHORIZED</code><br />
+Неверный <code>access_token</code> (истек либо поврежден). Если указан <code>refresh token</code>, SDK подхватит эту ошибку и обновит токен.</p>
+<h2 id="accountbanned">AccountBanned</h2>
+<p>Код: <code>ACCOUNT_BANNED</code> или <code>USER_BLOCKED</code><br />
+Аккаунт заблокирован.</p>
+<h2 id="profilerequired">ProfileRequired</h2>
+<p>Код: <code>PROFILE_REQUIRED</code><br />
+Требуется профиль (надо пройти начальную страницу <code>onboarding</code>, которая открывается при регистрации, где недо заполнить имя и клан).</p>
+<hr />
+<h2 id="auth">Ошибки авторизации (при auth запросах)</h2>
+<h3 id="invalidcookie">InvalidCookie</h3>
+<p>Неправильные данные cookie. Есть несколько разновидностей:</p>
+<h4 id="session-not-found">Session not found</h4>
+<p>Код: <code>SESSION_NOT_FOUND</code><br />
+Сессия не найдена. Скорее всего несуществующий <code>refresh token</code>.</p>
+<h4 id="no-refresh-token">No refresh token</h4>
+<p>Код: <code>REFRESH_TOKEN_MISSING</code><br />
+В cookies нету <code>refresh token</code>.</p>
+<h4 id="session-expired">Session expired</h4>
+<p>Код: <code>SESSION_EXPIRED</code><br />
+Истек срок годности <code>refresh token</code>. Обычно больше месяца после входа.</p>
+<h4 id="session-revoked">Session revoked</h4>
+<p>Код: <code>SESSION_REVOKED</code><br />
+<code>refresh token</code> пересоздан (revoked). Обычно из-за перезахода (после выхода токен сбрасывается).</p>
+<h3 id="unauthorized">Unauthorized</h3>
+<p>Код: <code>UNAUTHORIZED</code><br />
+Неавторизован. Скорее всего, какая-то ошибка внутри SDK (cookies не дошли до сервера).</p>
 
 
 
@@ -512,7 +727,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href=".." class="md-footer__link md-footer__link--prev" aria-label="Previous: itd-sdk">
+          <a href="../auth/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Авторизация">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -522,20 +737,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                itd-sdk
+                Авторизация
               </div>
             </div>
           </a>
         
         
           
-          <a href="../base_errors/" class="md-footer__link md-footer__link--next" aria-label="Next: Основые ошибки">
+          <a href="../posts/" class="md-footer__link md-footer__link--next" aria-label="Next: Посты">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Основые ошибки
+                Посты
               </div>
             </div>
             <div class="md-footer__button md-icon">

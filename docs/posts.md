@@ -10,13 +10,14 @@ post = c.create_post(
     poll=None
 )
 ```
+Должно быть указан хотя бы что-то одно (кроме `spans` и `wall_recipient_id`).
 
 ### Параметры
 
-#### content
+#### content <span class="mdx-badge"><span class="mdx-badge__icon">:material-text:</span><span class="mdx-badge__text">str</span></span> <span class="mdx-badge mdx-badge_one_required"><span class="mdx-badge__icon">:material-information:</span><span class="mdx-badge__text">One of required</span></span>
 Содержание поста.
 
-#### spans
+#### spans <span class="mdx-badge"><span class="mdx-badge__icon">:octicons-list-unordered-16: :material-text-short:</span><span class="mdx-badge__text">list[Span]</span></span>
 Стилизация.
 
 !!! example
@@ -34,13 +35,13 @@ post = c.create_post(
 
         `*` - символ для "разархивации". `parse_html` возвращает список, который `*` разделяет на `content` (читый контент без тэгов) и `spans`
 
-#### wall_recipient_id
+#### wall_recipient_id <span class="mdx-badge"><span class="mdx-badge__icon">:material-identifier:</span><span class="mdx-badge__text">UUID</span></span>
 ID получателя поста (для постов на стене). `Username` не работает.
 
-#### attachment_ids
+#### attachment_ids <span class="mdx-badge"><span class="mdx-badge__icon">:octicons-list-unordered-16: :material-identifier:</span><span class="mdx-badge__text">list[UUID]</span></span> <span class="mdx-badge mdx-badge_one_required"><span class="mdx-badge__icon">:material-information:</span><span class="mdx-badge__text">One of required</span></span>
 ID вложений.
 
-#### poll
+#### poll <span class="mdx-badge"><span class="mdx-badge__icon">:material-poll:</span><span class="mdx-badge__text">PollData</span></span> <span class="mdx-badge mdx-badge_one_required"><span class="mdx-badge__icon">:material-information:</span><span class="mdx-badge__text">One of required</span></span>
 Опросник.
 
 !!! example
@@ -63,48 +64,10 @@ ID вложений.
 
 
 ### Ошибки
-
-#### NotFound
-Получатель поста не найден.
-
-!!! example
-
-    ```python
-    c.create_post(
-        '123',
-        wall_recipient_id=UUID('6b791b8b-e8b7-41ee-8e12-1d48ca0b4cf0') # !
-    )
-    ```
-
-#### Forbidden
-Некоторые вложения не принадлежат вам или файл не существует. Вложения должны быть загружены вами через `upload_file`.
-!!! example
-
-    ```python
-    c.create_post(
-        attachment_ids=[UUID('6b791b8b-e8b7-41ee-8e12-1d48ca0b4cf2')] # !
-    )
-    ```
-
-#### ValidationError
-Ошибка валидации, скорее всего из-за слишком большого количества символов.
-!!! example
-
-    ```python
-    c.create_post(
-        'шкебетоилет' * 1000 # !
-    )
-    ```
-
-#### VideoRequiresVerification
-Возникает при попытке загрузить видео с неверифицированого аккаунта.
-!!! example
-
-    ```python
-    c.create_post(
-        attachment_ids=[UUID('bc073a52-0d8a-4039-b33a-74b5a01b689f')] # !
-    )
-    ```
+ - `NotFound` - получатель поста не найден.
+ - `Forbidden` - некоторые вложения не принадлежат вам или файл не существует. Вложения должны быть загружены вами через `upload_file`.
+ - `ValidationError` - ошибка валидации, скорее всего из-за слишком большого количества символов.
+ - `RequiresVerification` - нельзя загружать видео с неверифицированого аккаунта.
 
 ---
 
@@ -118,10 +81,10 @@ poll = c.vote(
 
 ### Параметры
 
-#### id
+#### id <span class="mdx-badge"><span class="mdx-badge__icon">:material-identifier:</span><span class="mdx-badge__text">UUID</span></span> <span class="mdx-badge mdx-badge_required"><span class="mdx-badge__icon">:material-information:</span><span class="mdx-badge__text">Required</span></span>
 ID поста.
 
-#### option_ids
+#### option_ids <span class="mdx-badge"><span class="mdx-badge__icon">:octicons-list-unordered-16: :material-identifier:</span><span class="mdx-badge__text">list[UUID]</span></span> <span class="mdx-badge mdx-badge_required"><span class="mdx-badge__icon">:material-information:</span><span class="mdx-badge__text">Required</span></span>
 ID опций для выбора (даже если в опросе можно выбрать только 1 вариант, все равно пишите как список).
 
 !!! example
@@ -161,7 +124,7 @@ posts, pagination = c.get_posts(
 
 ### Параметры
 
-#### cursor
+#### cursor <span class="mdx-badge"><span class="mdx-badge__icon">:octicons-number-16:</span><span class="mdx-badge__text">int</span></span>
 Курсор для пагинации (из `pagination.next_cursor`).
 
 !!! example
@@ -174,7 +137,7 @@ posts, pagination = c.get_posts(
         cursor = pagination.next_cursor
     ```
 
-#### tab
+#### tab <span class="mdx-badge"><span class="mdx-badge__icon">:material-form-select:</span><span class="mdx-badge__text">PostsTab</span></span>
 Вкладка.
 
  - `POPULAR`: Популярные
@@ -188,3 +151,175 @@ posts, pagination = c.get_posts(
 
     c.get_posts(tab=PostsTab.FOLLOWING)
     ```
+
+---
+
+## Получить пост
+```python
+post = c.get_post(
+    id=UUID('c2f443df-61eb-4bfc-b52f-13aacecb9c46')
+)
+```
+
+### Параметры
+
+#### id <span class="mdx-badge"><span class="mdx-badge__icon">:material-identifier:</span><span class="mdx-badge__text">UUID</span></span> <span class="mdx-badge mdx-badge_required"><span class="mdx-badge__icon">:material-information:</span><span class="mdx-badge__text">Required</span></span>
+ID поста.
+
+### Ошибки
+ - `NotFound`
+
+---
+
+## Отредактировать пост
+```python
+content = c.edit_post(
+    id=UUID('c2f443df-61eb-4bfc-b52f-13aacecb9c46'),
+    content='Новое содержимое',
+    spans=[]
+)
+```
+
+### Параметры
+
+#### id <span class="mdx-badge"><span class="mdx-badge__icon">:material-identifier:</span><span class="mdx-badge__text">UUID</span></span> <span class="mdx-badge mdx-badge_required"><span class="mdx-badge__icon">:material-information:</span><span class="mdx-badge__text">Required</span></span>
+ID поста.
+
+#### content <span class="mdx-badge"><span class="mdx-badge__icon">:material-text:</span><span class="mdx-badge__text">str</span></span> <span class="mdx-badge mdx-badge_required"><span class="mdx-badge__icon">:material-information:</span><span class="mdx-badge__text">Required</span></span>
+Новое содержимое.
+
+#### spans  <span class="mdx-badge"><span class="mdx-badge__icon">:octicons-list-unordered-16: :material-text-short:</span><span class="mdx-badge__text">list[Span]</span></span>
+Стилизация. [см. Пример заполнения](#spans)
+
+### Ошибки
+ - `NotFound`
+ - `Forbidden` - пост не ваш.
+ - `ValidationError` - ошибка валидации.
+ - `EditExpired` - истекло время на редактирование. Редактирвоание разрешено только в первые 48ч после его публикации.
+
+---
+
+## Удалить пост
+```python
+c.delete_post(
+    id=UUID('c2f443df-61eb-4bfc-b52f-13aacecb9c46')
+)
+```
+
+### Параметры
+
+#### id <span class="mdx-badge"><span class="mdx-badge__icon">:material-identifier:</span><span class="mdx-badge__text">UUID</span></span> <span class="mdx-badge mdx-badge_required"><span class="mdx-badge__icon">:material-information:</span><span class="mdx-badge__text">Required</span></span>
+ID поста.
+
+### Ошибки
+ - `NotFound`
+ - `Forbidden` - пост не ваш.
+
+---
+
+## Закрепить пост
+```python
+c.pin_post(
+    id=UUID('c2f443df-61eb-4bfc-b52f-13aacecb9c46')
+)
+```
+
+### Параметры
+
+#### id <span class="mdx-badge"><span class="mdx-badge__icon">:material-identifier:</span><span class="mdx-badge__text">UUID</span></span> <span class="mdx-badge mdx-badge_required"><span class="mdx-badge__icon">:material-information:</span><span class="mdx-badge__text">Required</span></span>
+ID поста.
+
+### Ошибки
+ - `NotFound`
+ - `Forbidden` - пост не на вашей стене.
+
+---
+
+## Репост
+```python
+post = c.repost(
+    id=UUID('c2f443df-61eb-4bfc-b52f-13aacecb9c46'),
+    content='Содрежимое'
+)
+```
+
+### Параметры
+
+#### id <span class="mdx-badge"><span class="mdx-badge__icon">:material-identifier:</span><span class="mdx-badge__text">UUID</span></span> <span class="mdx-badge mdx-badge_required"><span class="mdx-badge__icon">:material-information:</span><span class="mdx-badge__text">Required</span></span>
+ID поста.
+
+#### content <span class="mdx-badge"><span class="mdx-badge__icon">:material-text:</span><span class="mdx-badge__text">str</span></span>
+Дополнительная подпись.
+
+### Ошибки
+ - `NotFound`
+ - `AlreadyReposted` - Пост уже репостнут.
+ - `CantRepostYourPost` - Собственные посты нельзя репостить.
+ - `ValidationError` - Ошибка валидации.
+
+---
+
+## Просмотреть пост
+```python
+c.view_post(
+    id=UUID('c2f443df-61eb-4bfc-b52f-13aacecb9c46')
+)
+```
+
+### Параметры
+
+#### id <span class="mdx-badge"><span class="mdx-badge__icon">:material-identifier:</span><span class="mdx-badge__text">UUID</span></span> <span class="mdx-badge mdx-badge_required"><span class="mdx-badge__icon">:material-information:</span><span class="mdx-badge__text">Required</span></span>
+ID поста.
+
+### Ошибки
+ - `NotFound`
+
+---
+
+### Получить посты пользователя
+```python
+posts, pagination = c.get_user_posts(
+    username_or_id='itd_sdk',
+    limit=20,
+    cursor=None
+)
+```
+
+### Параметры
+
+#### id <span class="mdx-badge"><span class="mdx-badge__icon">:material-identifier:</span><span class="mdx-badge__text">UUID</span></span> <span class="mdx-badge mdx-badge_required"><span class="mdx-badge__icon">:material-information:</span><span class="mdx-badge__text">Required</span></span>
+ID или `username` пользователя.
+
+#### limit <span class="mdx-badge"><span class="mdx-badge__icon">:octicons-number-16:</span><span class="mdx-badge__text">int</span></span>
+Лимит постов.
+
+#### cursor <span class="mdx-badge"><span class="mdx-badge__icon">:material-timer:</span><span class="mdx-badge__text">datetime</span></span>
+Курсор для пагинации (из `pagination.next_cursor`).
+
+### Ошибки
+ - `NotFound`
+
+---
+
+## Получить лайкнутые посты пользователя
+```python
+posts, pagination = c.get_liked_posts(
+    username_or_id='itd_sdk',
+    limit=20,
+    cursor=None
+)
+```
+
+### Параметры
+
+#### id <span class="mdx-badge"><span class="mdx-badge__icon">:material-identifier:</span><span class="mdx-badge__text">UUID</span></span> <span class="mdx-badge mdx-badge_required"><span class="mdx-badge__icon">:material-information:</span><span class="mdx-badge__text">Required</span></span>
+ID или `username` пользователя.
+
+#### limit <span class="mdx-badge"><span class="mdx-badge__icon">:octicons-number-16:</span><span class="mdx-badge__text">int</span></span>
+Лимит постов.
+
+#### cursor <span class="mdx-badge"><span class="mdx-badge__icon">:material-timer:</span><span class="mdx-badge__text">datetime</span></span>
+Курсор для пагинации (из `pagination.next_cursor`).
+
+### Ошибки
+ - `NotFound`
