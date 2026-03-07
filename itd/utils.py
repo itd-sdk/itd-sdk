@@ -1,5 +1,6 @@
 # Писал ии, у меня у самого не получилось. Мой код можете найти в комите cd27baa8d65b36cfb1d030bc5a578ac6efb45445 в комментарии
 from html.parser import HTMLParser
+import re
 
 from itd.models.post import Span
 from itd.enums import SpanType
@@ -81,3 +82,80 @@ def parse_html(text: str) -> tuple[str, list[Span]]:
     parser = HTMLSpanParser()
     parser.feed(text)
     return parser.get_text(), parser.get_spans()
+
+
+DELIMITERS = {
+    '**': SpanType.BOLD,
+    '*': SpanType.ITALIC,
+    '~~': SpanType.STRIKE,
+    '__': SpanType.UNDERLINE,
+    '`': SpanType.MONOSPACE,
+    '||': SpanType.SPOILER,
+    '>': SpanType.QUOTE,
+}
+
+
+def _split_with_delimiters(s: str):
+    escaped_delimiters = [re.escape(d) for d in sorted(DELIMITERS.keys(), key=len, reverse=True)]
+    link_pattern = r'\[[^\]]+\]\([^\)]+\)'
+    pattern = '(' + '|'.join([r'\\.', link_pattern] + escaped_delimiters) + ')'
+    return list(filter(len, re.split(pattern, s)))
+
+
+def parse_md(s: str) -> tuple[str, list[Span]]:
+    """
+    Парсит markdown, извлекает чистый текст и spans с форматированием.
+
+    **жирный**
+    *курсив*
+    ~~зачёркнутый~~
+    __подчёркнутый__
+    `моноширный`
+    ||спойлер||
+    >цитата>
+
+    Теги могут пересекаться, например: __111*1234__32342*
+
+    Теги могут быть вложенными: __1231*1323*__
+
+    [текст ссылки](url)
+
+    Внутри ссылки остальные теги не парсятся
+
+    используйте \ для экранирования символов
+
+    Args:
+        s: markdown строка для парсинга
+
+    Returns:
+        str: чистая строка
+        list[Span]: список спанов
+    """
+    starts = {}
+    result = ""
+    spans = []
+    for token in _split_with_delimiters(s):
+        if token[0] == '\\':
+            result += token[1]
+        elif token in starts:
+            start = starts[token]
+            del starts[token]
+            spans.append(Span(
+                offset=start,
+                length=len(result) - start,
+                type=DELIMITERS[token]
+            ))
+        elif token in DELIMITERS:
+            starts[token] = len(result)
+        elif match := re.match(r'\[([^\]]+)\]\(([^\)]+)\)', token):
+            spans.append(Span(
+                offset=len(result),
+                length=len(match.group(1)),
+                type=SpanType.LINK,
+                url=match.group(2),
+            ))
+            result += match.group(1)
+        else:
+            result += token
+
+    return result, spans
