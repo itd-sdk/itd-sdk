@@ -4,8 +4,9 @@ from typing import cast, Iterator
 from datetime import datetime
 from json import JSONDecodeError, loads
 from time import sleep
+from functools import wraps
 
-from requests.exceptions import ConnectionError, HTTPError
+from requests.exceptions import HTTPError
 from sseclient import SSEClient
 
 from itd.routes.users import get_user, update_profile, follow, unfollow, get_followers, get_following, update_privacy, update_privacy_new
@@ -46,13 +47,15 @@ from itd.exceptions import (
 
 
 def refresh_on_error(func):
+    @wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.cookies:
             try:
                 return func(self, *args, **kwargs)
-            except (Unauthorized, ConnectionError, HTTPError):
-                self.refresh_auth()
-                return func(self, *args, **kwargs)
+            except HTTPError as e:
+                if e.response.status_code == 401:
+                    self.refresh_auth()
+                    return func(self, *args, **kwargs)
         else:
             return func(self, *args, **kwargs)
     return wrapper
