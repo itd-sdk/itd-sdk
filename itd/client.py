@@ -1,4 +1,4 @@
-from warnings import deprecated
+from functools import wraps
 from uuid import UUID
 from _io import BufferedReader
 from typing import cast
@@ -41,15 +41,18 @@ from itd.exceptions import (
 
 
 def refresh_on_error(func):
+    @wraps(func)
     def wrapper(self, *args, **kwargs):
-        if self.cookies:
-            try:
-                return func(self, *args, **kwargs)
-            except (Unauthorized, ConnectionError, HTTPError):
+        if not self.cookies:
+            return func(self, *args, **kwargs)
+
+        try:
+            return func(self, *args, **kwargs)
+        except HTTPError as e:
+            if e.response.status_code == 401:
                 self.refresh_auth()
                 return func(self, *args, **kwargs)
-        else:
-            return func(self, *args, **kwargs)
+
     return wrapper
 
 
