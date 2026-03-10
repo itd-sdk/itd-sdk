@@ -32,7 +32,7 @@ def fetch(token: str, method: str, url: str, params: dict = {}, files: dict[str,
 
     try:
         if res.json().get('error') == 'Too Many Requests':
-            raise RateLimitExceeded(0)
+            raise RateLimitExceeded(res.json().get('retry_after', 0))
         if res.json().get('error', {}).get('code') == 'RATE_LIMIT_EXCEEDED':
             raise RateLimitExceeded(res.json()['error'].get('retryAfter', 0))
         if res.json().get('error', {}).get('code') == 'UNAUTHORIZED':

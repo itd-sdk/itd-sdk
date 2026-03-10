@@ -267,7 +267,7 @@ class Client:
             raise NotFound('User')
         if res.json().get('error', {}).get('code') == 'CONFLICT':
             raise AlreadyFollowing()
-        if res.json().get('error', {}).get('code') == 'VALIDATION_ERROR' and res.status_code == 400:
+        if res.json().get('error', {}).get('message') == 'Cannot follow yourself':
             raise CantFollowYourself()
         res.raise_for_status()
 

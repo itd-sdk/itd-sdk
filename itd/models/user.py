@@ -71,7 +71,7 @@ class UserNotification(UserNewPost, _UserId):
     pass
 
 
-class UserPost(UserNotification, UserNewPost):
+class UserPost(UserNotification):
     pass
 
 
