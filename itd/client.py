@@ -37,7 +37,7 @@ from itd.routes.pins import get_pins, remove_pin, set_pin
 
 from itd.models.comment import Comment
 from itd.models.notification import Notification
-from itd.models.post import Post, NewPost, PollData, Poll, Span
+from itd.models.post import Post, PollData, Poll, Span
 from itd.models.clan import Clan
 from itd.models.hashtag import Hashtag
 from itd.models.user import (
@@ -51,7 +51,7 @@ from itd.models.pin import Pin
 from itd.models.event import StreamConnect, StreamNotification
 
 from itd.enums import PostsTab, ReportTargetType, ReportTargetReason, UserPostSorting, Unset
-from itd.request import set_cookies
+from itd.request import set_cookies, decode_jwt_payload
 from itd.exceptions import (
     NoCookie, NoAuthData, SamePassword, InvalidOldPassword, NotFound, ValidationError, UserBanned,
     PendingRequestExists, Forbidden, UsernameTaken, CantFollowYourself, Unauthorized,
@@ -766,7 +766,7 @@ class Client:
 
 
     @refresh_on_error
-    def create_post(self, content: str | None = None, spans: list[Span] = [], wall_recipient_id: UUID | None = None, attachment_ids: list[UUID] = [], poll: PollData | None = None) -> NewPost:
+    def create_post(self, content: str | None = None, spans: list[Span] = [], wall_recipient_id: UUID | None = None, attachment_ids: list[UUID] = [], poll: PollData | None = None) -> Post:
         """Создать пост
 
         Args:
@@ -783,7 +783,7 @@ class Client:
             RequiresVerification: Для загрузки видео нужна верификация
 
         Returns:
-            NewPost: Новый пост
+            Post: Новый пост
         """
         res = create_post(self.token, content, [span.model_dump(mode="json") for span in spans], wall_recipient_id, attachment_ids, poll.poll if poll else None)
 
@@ -796,8 +796,11 @@ class Client:
         if res.status_code == 422 and 'found' in res.json():
             raise ValidationError(*list(res.json()['found'].items())[0])
         res.raise_for_status()
-
-        return NewPost.model_validate(res.json())
+        data = res.json()
+        data['author']['id'] = decode_jwt_payload(self.token)['sub']
+        data['dominant'] = None # как только пост создан никто не поставил лайк поэтомут точно Nonne
+        data['editedAt'] = None # как только пост создан он не отредактирован
+        return Post.model_validate(data)
 
     @refresh_on_error
     def vote(self, id: UUID, option_ids: list[UUID]) -> Poll:
@@ -945,7 +948,7 @@ class Client:
         res.raise_for_status()
 
     @refresh_on_error
-    def repost(self, id: UUID, content: str | None = None) -> NewPost:
+    def repost(self, id: UUID, content: str | None = None) -> Post:
         """Репостнуть пост
 
         Args:
@@ -959,7 +962,7 @@ class Client:
             ValidationError: Ошибка валидации
 
         Returns:
-            NewPost: Новый пост
+            Post: Новый пост
         """
         res = repost(self.token, id, content)
 
@@ -972,8 +975,11 @@ class Client:
         if res.status_code == 422 and 'found' in res.json():
             raise ValidationError(*list(res.json()['found'].items())[0])
         res.raise_for_status()
-
-        return NewPost.model_validate(res.json())
+        data = res.json()
+        data['author']['id'] = decode_jwt_payload(self.token)['sub']
+        data['dominant'] = None  # как только пост создан никто не поставил лайк поэтомут точно Nonne
+        data['editedAt'] = None  # как только пост создан он не отредактирован
+        return Post.model_validate(data)
 
     @refresh_on_error
     def view_post(self, id: UUID) -> None:
