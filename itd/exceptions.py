@@ -180,3 +180,7 @@ class CantBlockYourself(Exception):
 class UserBlocked(Exception):
     def __str__(self) -> str:
         return 'You blocked user or user blocked you'
+
+class NotFoundOrBlocked(Exception):
+    def __str__(self) -> str:
+        return 'User not found or blocked'

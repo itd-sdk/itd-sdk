@@ -6,7 +6,6 @@ from json import JSONDecodeError, loads
 from time import sleep
 from functools import wraps
 
-from requests.exceptions import HTTPError
 from sseclient import SSEClient
 
 from itd.routes.users import (
@@ -53,13 +52,13 @@ from itd.models.event import StreamConnect, StreamNotification
 from itd.enums import PostsTab, ReportTargetType, ReportTargetReason, UserPostSorting, Unset
 from itd.request import set_cookies, decode_jwt_payload
 from itd.exceptions import (
-    NoCookie, NoAuthData, SamePassword, InvalidOldPassword, NotFound, ValidationError, UserBanned,
+    NoCookie, NoAuthData, SamePassword, InvalidOldPassword, NotFound, ValidationError,
     PendingRequestExists, Forbidden, UsernameTaken, CantFollowYourself, Unauthorized,
     CantRepostYourPost, AlreadyReposted, AlreadyReported, TooLarge, PinNotOwned, NoContent,
     AlreadyFollowing, NotFoundOrForbidden, OptionsNotBelong, NotMultipleChoice, EmptyOptions,
     RequiresVerification, InvalidFileType, EditExpired, UploadError, AccountNotDeleted,
     AccountAlreadyDeleted, AlreadyBlocked, NotBlocked, CantBlockYourself, TargetUserBanned,
-    UserBlocked
+    UserBlocked, NotFoundOrBlocked
 )
 
 
@@ -173,7 +172,7 @@ class Client:
         if res.json().get('error', {}).get('code') == 'NOT_FOUND':
             raise NotFound('User')
         if res.json().get('error', {}).get('code') == 'USER_BLOCKED':
-            raise UserBanned() # TODO: use UserBlocked
+            raise UserBlocked()
         res.raise_for_status()
 
         return User.model_validate(res.json())
@@ -313,7 +312,7 @@ class Client:
         """
         res = get_followers(self.token, username, limit, page)
         if res.json().get('error', {}).get('code') == 'NOT_FOUND':
-            raise NotFound('User') # TODO: replace to NotFoundOrBlocked
+            raise NotFoundOrBlocked('User')
         res.raise_for_status()
 
         return [UserFollower.model_validate(user) for user in res.json()['data']['users']], Pagination.model_validate(res.json()['data']['pagination'])
@@ -336,7 +335,7 @@ class Client:
         """
         res = get_following(self.token, username, limit, page)
         if res.json().get('error', {}).get('code') == 'NOT_FOUND':
-            raise NotFound('User') # TODO: replace to NotFoundOrBlocked
+            raise NotFoundOrBlocked('User')
         res.raise_for_status()
 
         return [UserFollower.model_validate(user) for user in res.json()['data']['users']], Pagination.model_validate(res.json()['data']['pagination'])

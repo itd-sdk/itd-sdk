@@ -80,7 +80,7 @@ class OriginalPost(_PostAuthor):
     is_deleted: bool = Field(False, alias='isDeleted')
 
 
-class Post(_PostCounts, _PostAuthor):
+class Post(_PostAuthor):
     poll: Poll | None = None
     dominant: str | None = Field(None, alias='dominantEmoji')
     edited_at: datetime | None = Field(None, alias='editedAt')
