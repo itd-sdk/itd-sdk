@@ -13,4 +13,4 @@ if file.mime_type == 'image/jpeg':
 
 print('link', file.url)
 
-c.add_comment('c4644803-4637-4d8d-8333-1944e4416377', '', attachment_ids=[file.id])
+c.add_comment('fd64eec8-8db3-4d36-83d2-e020a37e43b4','я тоже так умею', attachment_ids=[file.id])

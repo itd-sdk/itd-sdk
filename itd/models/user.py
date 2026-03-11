@@ -9,7 +9,6 @@ from itd.enums import AccessType
 
 class _UserPrivacy(BaseModel):
     private: bool | None = Field(None, alias='isPrivate') # none for not me
-    wall_closed: bool | None = Field(None, alias='wallClosed', deprecated=True) # TODO: remove
     wall_access: AccessType = Field(AccessType.EVERYONE, alias='wallAccess')
     likes_visibility: AccessType = Field(AccessType.EVERYONE, alias='likesVisibility')
 
