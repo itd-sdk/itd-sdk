@@ -438,6 +438,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/users/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Пользователи / Аккаунт
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1049,6 +1077,10 @@
 <li><code>access_token</code> - JWT токен, действует около 15 минут, обновляется при перезагрузке страницы.</li>
 <li><code>refresh_token</code> - Случайная строка, действует более месяца, обновляется при выходе и повторном входе.</li>
 </ul>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>Никому не передавайте свой <code>access</code> или <code>refresh</code> токен! С его помощью можно получить полный доступ к аккаунту.</p>
+</div>
 <p>Найти <code>access token</code> можно в любом запросе в DevTools (открывается нажатием <code>F12</code>) во вкладке <code>Сеть</code> / <code>Network</code>:
 <img alt="access token" src="../access-token.png" /></p>
 <p>Найти <code>refresh token</code> можно найти в запросе <code>/auth/refresh</code>:

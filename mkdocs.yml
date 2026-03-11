@@ -33,6 +33,7 @@ nav:
   - Методы:
     - methods/posts.md
     - methods/auth.md
+    - methods/users.md
   - API Reference:
     - api/client.md
     - Models:
