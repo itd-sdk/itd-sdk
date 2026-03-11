@@ -80,26 +80,24 @@ class OriginalPost(_PostAuthor):
     is_deleted: bool = Field(False, alias='isDeleted')
 
 
-class _Post(_PostCounts):
+class Post(_PostCounts, _PostAuthor):
+    poll: Poll | None = None
+    dominant: str | None = Field(None, alias='dominantEmoji')
+    edited_at: datetime | None = Field(None, alias='editedAt')
+
     is_liked: bool = Field(False, alias='isLiked')
     is_reposted: bool = Field(False, alias='isReposted')
     is_viewed: bool = Field(False, alias='isViewed')
     is_owner: bool = Field(False, alias='isOwner')
-    is_pinned: bool = Field(False, alias='isPinned') # only for user wall
+    is_pinned: bool = Field(False, alias='isPinned')  # only for user wall
 
     attachments: list[PostAttach] = []
     comments: list[Comment] = []
 
-    original_post: OriginalPost | None = None # for reposts
+    original_post: OriginalPost | None = None  # for reposts
 
     wall_recipient_id: UUID | None = Field(None, alias='wallRecipientId')
     wall_recipient: UserPost | None = Field(None, alias='wallRecipient')
-
-
-class Post(_Post, _PostAuthor):
-    poll: Poll | None = None
-    dominant: str | None = Field(None, alias='dominantEmoji')
-    edited_at: datetime | None = Field(None, alias='editedAt')
 
     @field_validator('edited_at', mode='plain')
     @classmethod
@@ -111,8 +109,3 @@ class Post(_Post, _PostAuthor):
             return datetime.strptime(v + '00', '%Y-%m-%d %H:%M:%S.%f%z')
         except ValueError:
             return datetime.fromisoformat(v)
-
-
-class NewPost(_Post):
-    author: UserNewPost
-    poll: NewPoll | None = None

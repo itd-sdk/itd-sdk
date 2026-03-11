@@ -1,4 +1,8 @@
+import base64
+import json
 from _io import BufferedReader
+import time
+from typing import Any
 
 from requests import Response, Session
 from requests.exceptions import JSONDecodeError
@@ -10,7 +14,40 @@ from itd.exceptions import (
 s = Session()
 
 
-def fetch(token: str, method: str, url: str, params: dict = {}, files: dict[str, tuple[str, BufferedReader | bytes]] = {}) -> Response:
+def decode_jwt_payload(jwt_token: str) -> dict[str, Any]:
+    """Декодирует pyload jwt.
+
+    Args:
+        jwt_token: jwt токен
+
+    Returns:
+        jwt payload
+    """
+    parts = jwt_token.split('.')
+    if len(parts) != 3:
+        raise ValueError("access токен состоит из трёх сегментов")
+    payload = parts[1]
+    payload += '=' * ((4 - len(payload) % 4) % 4)
+    decoded = base64.urlsafe_b64decode(payload).decode('utf-8')
+    return json.loads(decoded)
+
+
+def is_token_expired(access_token: str) -> bool:
+    """Истёк ли `access_token`.
+
+    Args:
+        access_token: access токен
+
+    Returns:
+         Истёк ли токен
+
+    """
+    payload = decode_jwt_payload(access_token)
+    return time.time() - 1 >= payload['exp']
+
+
+def fetch(token: str, method: str, url: str, params: dict = {},
+          files: dict[str, tuple[str, BufferedReader | bytes]] = {}) -> Response:
     base = f'https://xn--d1ah4a.com/api/{url}'
     headers = {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -61,6 +98,7 @@ def set_cookies(cookies: str):
     for cookie in cookies.split('; '):
         s.cookies.set(cookie.split('=')[0], cookie.split('=')[-1], path='/', domain='xn--d1ah4a.com')
 
+
 def auth_fetch(cookies: str, method: str, url: str, params: dict = {}, token: str | None = None) -> Response:
     headers = {
         "Host": "xn--d1ah4a.com",
@@ -87,7 +125,8 @@ def auth_fetch(cookies: str, method: str, url: str, params: dict = {}, token: st
             raise RateLimitExceeded(0)
         if res.json().get('error', {}).get('code') == 'RATE_LIMIT_EXCEEDED':
             raise RateLimitExceeded(res.json()['error'].get('retryAfter', 0))
-        if res.json().get('error', {}).get('code') in ('SESSION_NOT_FOUND', 'REFRESH_TOKEN_MISSING', 'SESSION_REVOKED', 'SESSION_EXPIRED'):
+        if res.json().get('error', {}).get('code') in ('SESSION_NOT_FOUND', 'REFRESH_TOKEN_MISSING', 'SESSION_REVOKED',
+                                                       'SESSION_EXPIRED'):
             raise InvalidCookie(res.json()['error']['code'])
         if res.json().get('error', {}).get('code') == 'UNAUTHORIZED':
             raise Unauthorized()
