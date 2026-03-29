@@ -11,7 +11,7 @@ idna==3.11
     # via requests
 pydantic==2.12.5
     # via itd-sdk
-pydantic-core==2.42.0
+pydantic-core==2.44.0
     # via pydantic
 requests==2.32.5
     # via itd-sdk
