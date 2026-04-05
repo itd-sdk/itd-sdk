@@ -13,7 +13,6 @@ def add_comment(client: Client, post_id: UUID, content: str | None = None, attac
 
 @catch_errors(ValidationError(), NotFound('Comment'), NotFound('User', _reply_comment_user_not_found=True))
 def add_reply_comment(client: Client, comment_id: UUID, author_id: UUID, content: str | None = None, attachment_ids: list[UUID] = []):
-    print(comment_id)
     return client.request('post', f'comments/{comment_id}/replies', {'content': content or '', 'replyToUserId': str(author_id), "attachmentIds": list(map(str, attachment_ids))})
 
 @catch_errors(ValidationError(), NotFound('Post'))

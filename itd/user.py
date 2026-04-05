@@ -2,7 +2,7 @@ from uuid import UUID
 from datetime import datetime
 from math import ceil
 
-from pydantic import Field, BaseModel, field_validator
+from pydantic import Field, BaseModel, field_validator, model_validator
 
 from itd.base import ITDBaseModel, refresh_wrapper
 from itd.enums import AccessType, ALL, All, Unset, Role
@@ -183,6 +183,7 @@ class _UserBase(ITDBaseModel):
 
 class User(_UserBase):
     _validator = lambda _: _UserValidate
+    _fields_from_data: set[str] = set()
 
     _followers: list = []
     _following: list = []
@@ -200,8 +201,9 @@ class User(_UserBase):
     @classmethod
     def _from_dict(cls, data: dict, set_loaded: bool = True, client: Client | None = None):
         instance = cls(data['username'], client)
-
-        for name, value in _UserValidate.model_validate(data).__dict__.items():
+        validated = _UserValidate.model_validate(data)
+        instance._fields_from_data = validated.model_fields_set
+        for name, value in validated.__dict__.items():
             setattr(instance, name, value)
 
         instance._loaded = set_loaded
@@ -242,13 +244,13 @@ class User(_UserBase):
         self.is_blocking = False
 
     @property
-    def following(self):
+    def following(self) -> list:
         if not self._following:
             self._following = [User._from_dict(user, False, self.client) for user in get_following(self.client, self._identifier).json()['data']['users']]
         return self._following
 
     @property
-    def followers(self):
+    def followers(self) -> list:
         if not self._followers:
             self._followers = [User._from_dict(user, False, self.client) for user in get_followers(self.client, self._identifier).json()['data']['users']]
         return self._followers
@@ -258,8 +260,9 @@ class User(_UserBase):
 class _UserValidate(BaseModel, User):
     @field_validator('pin', mode='plain')
     @classmethod
-    def validate_pin(cls, pin: dict):
-        return Pin(pin)
+    def validate_pin(cls, pin: dict | None):
+        if pin:
+            return Pin(pin)
 
 
 

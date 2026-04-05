@@ -3,22 +3,24 @@ from datetime import datetime
 
 from pydantic import Field, BaseModel, field_validator
 
-from itd.client import Client
 from itd.base import ITDBaseModel, refresh_wrapper
-from itd.utils import to_uuid, parse_datetime
+from itd.client import Client
 from itd.comment import Comment, Comments
+from itd.enums import PostsTab, UserPostSorting
+from itd.models.post import Span, PostAttach
+from itd.user import User
 from itd.poll import Poll, NewPoll
 from itd.routes.posts import (
     get_post, create_post, like_post, unlike_post, repost, view_post, pin_post, unpin_post,
-    delete_post, restore_post, edit_post
+    delete_post, restore_post, edit_post, get_posts, get_user_posts, get_liked_posts
 )
-from itd.models.post import Span, UserPost, PostAttach
+from itd.utils import to_uuid, parse_datetime
 
 
 
 class _BasePost(ITDBaseModel):
     id: UUID
-    author: UserPost
+    author: User
     created_at: datetime = Field(alias='createdAt')
 
     content: str
@@ -211,7 +213,7 @@ class Post(_BasePost):
     original_post: 'OriginalPost | None' = Field(None, alias='originalPost')  # for reposts
 
     wall_recipient_id: UUID | None = Field(None, alias='wallRecipientId')
-    wall_recipient: UserPost | None = Field(None, alias='wallRecipient')
+    wall_recipient: User | None = Field(None, alias='wallRecipient')
 
 
     def __init__(self, id: str | UUID, client: Client | None = None) -> None:
@@ -270,7 +272,9 @@ class Post(_BasePost):
         instance = cls.__new__(cls)
         super(Post, instance).__init__(client)
 
-        for name, value in _PostValidate.model_validate(data).__dict__.items():
+        validated = _PostValidate.model_validate(data)
+        instance._fields_from_data = validated.model_fields_set
+        for name, value in validated.__dict__.items():
             setattr(instance, name, value)
 
         instance._loaded = True
@@ -352,6 +356,19 @@ class _PostValidate(BaseModel, Post): # BaseModel MUST be first or you ll have s
     def validate_comments(cls, comments: list[dict]):
         return Comments(comments)
 
+    @field_validator('author', mode='plain')
+    @classmethod
+    def validate_author(cls, author: dict | User):
+        if isinstance(author, User):
+            return author
+        return User._from_dict(author, False)
+
+    @field_validator('wall_recipient', mode='plain')
+    @classmethod
+    def validate_wall_recipient(cls, wall_recipient: dict | None):
+        if wall_recipient is not None:
+            return User._from_dict(wall_recipient, False)
+
 
 
 
@@ -395,3 +412,59 @@ class _OriginalPostValidate(BaseModel, OriginalPost):
     @classmethod
     def validate_comments(cls, comments: list[dict]):
         return Comments(comments)
+
+    @field_validator('author', mode='plain')
+    @classmethod
+    def validate_author(cls, author: dict):
+        return User._from_dict(author, False)
+
+
+
+
+class Posts(ITDBaseModel, list[Post]):
+    _refreshable = False
+    cursor: str | datetime | None = None
+
+    def __init__(self, tab: PostsTab = PostsTab.POPULAR, client: Client | None = None) -> None:
+        super().__init__(client)
+        self.tab = tab
+
+    def _fetch(self, client: Client, limit: int = 50) -> dict:
+        return get_posts(client, self.cursor, limit, self.tab).json()['data']
+
+    def load(self, count: int | None = None, limit: int = 50, client: Client | None = None) -> 'Posts':
+        left = count or limit # if None get [LIMIT] firstly
+
+        while left > 0: # can be !=, but what if something went wrong
+            data = self._fetch(
+                client or self.client, min(limit, left) # limit versus how left, defaults will be limit, but when left < limit use left to not getting more than need
+            )
+            self.has_more = data['pagination']['hasMore']
+            self.cursor = data['pagination']['nextCursor']
+
+            posts = data['posts']
+            left -= len(posts)
+            if not posts:
+                break
+
+            print(f'fetched {len(posts)} left={left} (was {len(self)})')
+            self.extend([Post._from_dict(post, self.client) for post in posts])
+        return self
+
+    def __setattr__(self, name: str, value) -> None:
+        if name == '_client':
+            for post in self:
+                post._client = value
+        super().__setattr__(name, value)
+
+    @classmethod
+    def popular(cls, client: Client | None = None): # i think no one will use it (cuz it is equals just to "Posts()") but why not
+        return cls(PostsTab.POPULAR, client)
+
+    @classmethod
+    def following(cls, client: Client | None = None):
+        return cls(PostsTab.FOLLOWING, client)
+
+    @classmethod
+    def clan(cls, client: Client | None = None):
+        return cls(PostsTab.CLAN, client)

@@ -1,17 +1,23 @@
 from typing import Any, Callable
 from functools import wraps
-from time import sleep
 
-from pydantic.fields import FieldInfo
 from pydantic import BaseModel
 
 from itd.client import Client as ITDClient, get_default_client
+
+
+def _getattr(self: object, name: str, default: Any | None = None) -> Any:
+    try:
+        return object.__getattribute__(self, name)
+    except AttributeError:
+        return default
 
 
 class ITDBaseModel:
     _refreshable: bool = True
     _loaded: bool = False
     _loading: bool = False
+    _fields_from_data: set[str] = set()
     _validator: Callable[[Any], type[BaseModel]] | None = None # callable (pls use lambda), becuase we havent validator at that moment (it depends on this class)
 
     def __init__(self, client: ITDClient | None = None) -> None:
@@ -31,19 +37,20 @@ class ITDBaseModel:
 
 
     def __getattribute__(self, name: str) -> Any:
-        if object.__getattribute__(self, '_refreshable'):
+        if _getattr(self, '_refreshable'):
             try:
-                attr = object.__getattribute__(self, name)
+                attr = _getattr(self, name)
             except AttributeError:
                 attr = None
 
-            if (attr is not None and not isinstance(attr, FieldInfo)) or name.startswith('_') or callable(attr):
+            if name.startswith('_') or callable(attr) or name in ('client', 'model_fields_set'):
                 return attr
 
-            if not self._loaded:
+            fields_from_data = _getattr(self, '_fields_from_data', ())
+            if name not in fields_from_data and not _getattr(self, '_loaded'):
                 self.refresh()
 
-        return object.__getattribute__(self, name)
+        return _getattr(self, name)
 
 
 def refresh_wrapper(func):
@@ -55,7 +62,9 @@ def refresh_wrapper(func):
         # self._loading = True
         data = func(self, client or self.client)
         if self._validator:
-            for name, value in self._validator().model_validate(data).__dict__.items():
+            validated = self._validator().model_validate(data)
+            self._fields_from_data = validated.model_fields_set
+            for name, value in validated.__dict__.items():
                 setattr(self, name, value)
 
         # self._loading = False

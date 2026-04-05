@@ -34,8 +34,12 @@ def create_post(
 
     return client.request('post', 'posts', data)
 
-def get_posts(client: Client, cursor: int | datetime = 0, limit: int = 20, tab: PostsTab = PostsTab.POPULAR):
-    return client.request('get', 'posts', {'cursor': None if cursor == 0 else cursor, 'limit': limit, 'tab': tab.value})
+@catch_errors(ValidationError())
+def get_posts(client: Client, cursor: str | datetime | None = None, limit: int = 20, tab: PostsTab = PostsTab.POPULAR):
+    data = {'limit': limit, 'tab': tab.value}
+    if cursor is not None:
+        data['cursor'] = cursor
+    return client.request('get', 'posts', data)
 
 @catch_errors(NotFound('Post'))
 def get_post(client: Client, id: UUID):
@@ -72,9 +76,11 @@ def repost(client: Client, id: UUID, content: str | None = None):
 def view_post(client: Client, id: UUID):
     return client.request('post', f'posts/{id}/view')
 
+@catch_errors()
 def get_liked_posts(client: Client, username_or_id: str | UUID, limit: int = 20, cursor: datetime | None = None):
     return client.request('get', f'posts/user/{username_or_id}/liked', {'limit': limit, 'cursor': cursor})
 
+@catch_errors()
 def get_user_posts(client: Client, username_or_id: str | UUID, limit: int = 20, cursor: datetime | None = None, pinned_post_id: UUID | None = None, sort: UserPostSorting = UserPostSorting.NEW):
     return client.request('get', f'posts/user/{username_or_id}', {'limit': limit, 'cursor': cursor, 'pinnedPostId': pinned_post_id, 'sort': sort.value})
 

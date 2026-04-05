@@ -239,3 +239,7 @@ class InternalError(ITDException):
 class InvalidDisplayName(ITDException):
     code = 'INVALID_DISPLAY_NAME'
     text = 'Invalid display name'
+
+class ModerationFailed(ITDException):
+    code = 'CONTENT_MODERATION_ERROR'
+    text = 'Unable to moderate image'
