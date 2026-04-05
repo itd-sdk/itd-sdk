@@ -1,11 +1,15 @@
-from typing import Any, Callable
+from __future__ import annotations
+from typing import Any, Callable, TYPE_CHECKING
 from functools import wraps
 
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefinedType
 
-from itd.client import Client as ITDClient, get_default_client
+from itd._default import get_default_client
+
+if TYPE_CHECKING:
+    from itd.client import Client as ITDClient
 
 
 def _getattr(self: object, name: str, default: Any | None = None) -> Any:
@@ -34,6 +38,11 @@ class ITDBaseModel:
     def __init__(self, client: ITDClient | None = None) -> None:
         self._client = client or get_default_client()
 
+    def __setattr__(self, name: str, value: Any) -> None:
+        if isinstance(value, ITDBaseModel) and (client := _getattr(self, '_client')):
+            value._client = client
+        object.__setattr__(self, name, value)
+
     @property
     def client(self) -> ITDClient:
         return self._client
@@ -60,7 +69,8 @@ class ITDBaseModel:
             fields_from_data = _getattr(self, '_fields_from_data', ())
             if not _getattr(self, '_loaded') and (
                 (name not in fields_from_data and _field_has_default(type(self), name)) or
-                (attr is None and not _field_has_default(type(self), name))
+                (attr is None and not _field_has_default(type(self), name)) or
+                isinstance(attr, FieldInfo)
             ):
                 self.refresh()
 

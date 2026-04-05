@@ -1,12 +1,15 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from uuid import UUID
 from datetime import datetime
 
 from pydantic import Field, BaseModel, field_validator, model_validator
 
 from itd.base import ITDBaseModel
-from itd.client import Client
 from itd.routes.polls import vote
 from itd.utils import parse_datetime
+if TYPE_CHECKING:
+    from itd.client import Client
 
 
 class PollOption(ITDBaseModel):

@@ -9,6 +9,7 @@ from functools import wraps
 from sseclient import SSEClient
 
 from requests import Session
+from requests.adapters import HTTPAdapter
 
 from itd.request import fetch
 from itd.routes.users import (
@@ -26,11 +27,10 @@ from itd.routes.notifications import (
     get_notifications, mark_as_read, mark_all_as_read, get_unread_notifications_count,
     stream_notifications
 )
-# remvoe due to circular import
-# from itd.routes.posts import (
-#     create_post, get_posts, get_post, edit_post, delete_post, pin_post, repost, view_post,
-#     get_liked_posts, restore_post, like_post, unlike_post, get_user_posts, vote
-# )
+from itd.routes.posts import (
+    create_post, get_posts, get_post, edit_post, delete_post, pin_post, repost, view_post,
+    get_liked_posts, restore_post, like_post, unlike_post, get_user_posts
+)
 from itd.routes.reports import report
 from itd.routes.search import search
 from itd.routes.files import upload_file, get_file, delete_file
@@ -64,6 +64,9 @@ from itd.exceptions import (
     AlreadyBlocked, NotBlocked, CantBlockYourself, TargetUserBanned,
     UserBlocked, NotFoundOrBlocked
 )
+from itd.exceptions import Unauthorized
+from itd._default import _default_client, set_default_client
+from itd.user import Me
 
 
 def refresh_on_error(func):
@@ -89,6 +92,8 @@ class Client:
     def __init__(self, refresh_token: str | None = None, access_token: str | None = None):
         self._stream_active = False  # Флаг для остановки stream_notifications
         self.session = Session()
+        adapter = HTTPAdapter(pool_connections=1, pool_maxsize=10, pool_block=False)
+        self.session.mount('https://', adapter)
 
         if access_token:
             self.access_token = access_token.replace('Bearer ', '')
@@ -98,8 +103,6 @@ class Client:
             self.session.cookies.set('refresh_token', refresh_token, path='/', domain='xn--d1ah4a.com')
             self.refresh_auth()
 
-        else:
-            raise NoAuthData()
 
         if _default_client is None:
             set_default_client(self)
@@ -187,7 +190,7 @@ class Client:
     @property
     def user(self):
         if not self._user:
-            self._user = self.get_me()
+            self._user = Me()
         return self._user
 
 
@@ -950,16 +953,3 @@ class Client:
         """
         print('stop event')
         self._stream_active = False
-
-
-_default_client: Client | None = None
-
-def get_default_client() -> Client:
-    global _default_client
-    if _default_client is None:
-        raise
-    return _default_client
-
-def set_default_client(client: Client):
-    global _default_client
-    _default_client = client

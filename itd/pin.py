@@ -1,12 +1,13 @@
+from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
 from itd.base import ITDBaseModel
 from itd.routes.pins import set_pin, remove_pin
-from itd.client import Client
 
 if TYPE_CHECKING:
+    from itd.client import Client
     from itd.user import _UserBase
 
 

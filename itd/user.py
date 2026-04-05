@@ -1,8 +1,10 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from uuid import UUID
 from datetime import datetime
 from math import ceil
 
-from pydantic import Field, BaseModel, field_validator, model_validator
+from pydantic import Field, BaseModel, field_validator
 
 from itd.base import ITDBaseModel, refresh_wrapper
 from itd.enums import AccessType, ALL, All, Unset, Role
@@ -14,8 +16,9 @@ from itd.routes.users import (
 )
 from itd.routes.pins import get_pins, remove_pin
 from itd.routes.subscription import get_subscription, pay_subscription, get_payment_methods, toggle_subscription_auto_renewal
-from itd.client import Client
 from itd.utils import to_uuid
+if TYPE_CHECKING:
+    from itd.client import Client
 
 
 class ProfileUser(BaseModel):
@@ -128,7 +131,8 @@ class Subscription(ITDBaseModel):
         return pay_subscription(self.client).json()['confirmationUrl']
 
     def set_auto_renewal(self, enabled: bool) -> bool:
-        return toggle_subscription_auto_renewal(self.client, enabled).json()['autoRenewal']
+        self.auto_renewal = toggle_subscription_auto_renewal(self.client, enabled).json()['autoRenewal']
+        return self.auto_renewal
 
     def toggle_auto_renewal(self) -> bool:
         return self.set_auto_renewal(not self.auto_renewal)
