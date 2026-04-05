@@ -438,12 +438,14 @@ class Followers(ITDBaseModel, list[User]):
             ncount = count
 
         left = ncount or self.limit # if None get [20] firstly
+        page = ceil(len(self) / self.limit) + 1
 
         while left > 0: # can be !=, but what if something went wrong
             data = self._fetch(
                 client or self.client,
-                ceil(len(self) / self.limit) + 1, # page equals already loaded divide by [LIMIT]
+                page,
             )
+            page += 1
             self.has_more = data['pagination']['hasMore']
             self.total = data['pagination']['total']
 
