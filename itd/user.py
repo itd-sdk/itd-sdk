@@ -13,7 +13,7 @@ from itd.routes.users import (
     restore_account, get_blocked, get_privacy, update_privacy, update_profile, get_profile
 )
 from itd.routes.pins import get_pins, remove_pin
-from itd.routes.subscription import get_subscription
+from itd.routes.subscription import get_subscription, pay_subscription, get_payment_methods, toggle_subscription_auto_renewal
 from itd.client import Client
 from itd.utils import to_uuid
 
@@ -106,6 +106,7 @@ class _PrivacyValidate(BaseModel):
 
 class Subscription(ITDBaseModel):
     _validator = lambda _: _SubscriptionValidate
+    _payment_methods: list
 
     active: bool = Field(False, alias='isActive')
     expires_at: datetime | None = Field(None, alias='expiresAt')
@@ -114,12 +115,29 @@ class Subscription(ITDBaseModel):
     def __init__(self, data: dict, client: Client | None = None):
         super().__init__(client)
 
-        for name, value in _SubscriptionValidate.model_validate(data).__dict__.items():
+        validated = _SubscriptionValidate.model_validate(data)
+        self._fields_from_data = validated.model_fields_set
+        for name, value in validated.__dict__.items():
             setattr(self, name, value)
 
     @refresh_wrapper
-    def refresh(self): # refreshes only is_active
-        return get_subscription(self.client).json()
+    def refresh(self, client: Client | None = None): # refreshes only is_active
+        return get_subscription(client or self.client).json()
+
+    def pay(self):
+        return pay_subscription(self.client).json()['confirmationUrl']
+
+    def set_auto_renewal(self, enabled: bool) -> bool:
+        return toggle_subscription_auto_renewal(self.client, enabled).json()['autoRenewal']
+
+    def toggle_auto_renewal(self) -> bool:
+        return self.set_auto_renewal(not self.auto_renewal)
+
+    @property
+    def payment_methods(self):
+        if getattr(self, '_payment_methods', None) is None:
+            self._payment_methods = get_payment_methods(self.client).json()['data']
+        return self._payment_methods
 
     def __bool__(self):
         return self.active

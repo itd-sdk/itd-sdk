@@ -15,8 +15,8 @@ def pay_subscription(client: Client):
     return client.request('post', 'v1/subscription/pay')
 
 @catch_errors(NotFound('Subsciption', _subscription_not_found=True))
-def toggle_subscription_auto_renewal(client: Client):
-    return client.request('post', 'v1/subscription/auto-renewal')
+def toggle_subscription_auto_renewal(client: Client, enabled: bool):
+    return client.request('post', 'v1/subscription/auto-renewal', {'enabled': enabled})
 
 @catch_errors()
 def bind_card(client: Client):
