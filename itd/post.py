@@ -9,7 +9,7 @@ from itd.comment import Comment, Comments
 from itd.enums import PostsTab, UserPostSorting
 from itd.models.post import Span, PostAttach
 from itd.user import User, _UserBase
-from itd.poll import Poll, NewPoll
+from itd.poll import Poll, NewPoll, PollOption
 from itd.routes.posts import (
     get_post, create_post, like_post, unlike_post, repost, view_post, pin_post, unpin_post,
     delete_post, restore_post, edit_post, get_posts, get_user_posts, get_liked_posts
@@ -311,16 +311,20 @@ class Post(_BasePost):
         self.edited_at = updated_at
         return updated_at
 
+    def vote(self, options: list[str | UUID | PollOption] | str | UUID | PollOption, client: Client | None = None) -> None:
+        assert self.poll, 'No poll'
+        self.poll.vote(options, client or self.client)
 
-    def __getattribute__(self, name: str):
-        value = super().__getattribute__(name)
-        if name == 'poll' and value is not None and value._client is None:
-            value._client = self.client
-        if name == 'comments' and getattr(value, '_post_id', None) is None:
-            value._client = self.client
-            value._post_id = self.id
-            # value.total = self.comments_count
-        return value
+
+    # def __getattribute__(self, name: str):
+    #     value = super().__getattribute__(name)
+    #     if name == 'poll' and value is not None and value._client is None:
+    #         value._client = self.client
+    #     if name == 'comments' and getattr(value, '_post_id', None) is None:
+    #         value._client = self.client
+    #         value._post_id = self.id
+    #         # value.total = self.comments_count
+    #     return value
 
 
 

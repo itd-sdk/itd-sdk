@@ -72,7 +72,7 @@ class Poll(ITDBaseModel):
     def __int__(self) -> int:
         return self.total_votes
 
-    def vote(self, options: list[str | UUID | PollOption] | str | UUID | PollOption, client: Client | None = None):
+    def vote(self, options: list[str | UUID | PollOption] | str | UUID | PollOption, client: Client | None = None) -> None:
         uuid_options = []
         if isinstance(options, list):
             for option in options:
