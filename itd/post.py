@@ -316,17 +316,6 @@ class Post(_BasePost):
         self.poll.vote(options, client or self.client)
 
 
-    # def __getattribute__(self, name: str):
-    #     value = super().__getattribute__(name)
-    #     if name == 'poll' and value is not None and value._client is None:
-    #         value._client = self.client
-    #     if name == 'comments' and getattr(value, '_post_id', None) is None:
-    #         value._client = self.client
-    #         value._post_id = self.id
-    #         # value.total = self.comments_count
-    #     return value
-
-
 
 class _PostValidate(BaseModel, Post): # BaseModel MUST be first or you ll have some problems with init
     @field_validator('edited_at', mode='plain')

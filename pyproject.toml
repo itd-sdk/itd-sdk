@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "itd-sdk"
-version = "2.0.0a1"
+version = "2.0.0b1"
 description = "ITD client for python"
 readme = "README.md"
 authors = [
