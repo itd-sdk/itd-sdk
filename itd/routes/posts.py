@@ -76,12 +76,12 @@ def repost(client: Client, id: UUID, content: str | None = None):
 def view_post(client: Client, id: UUID):
     return client.request('post', f'posts/{id}/view')
 
-@catch_errors()
-def get_liked_posts(client: Client, username_or_id: str | UUID, limit: int = 20, cursor: datetime | None = None):
+@catch_errors(ValidationError(), NotFound('User'))
+def get_liked_posts(client: Client, username_or_id: str | UUID, cursor: datetime | None = None, limit: int = 20):
     return client.request('get', f'posts/user/{username_or_id}/liked', {'limit': limit, 'cursor': cursor})
 
-@catch_errors()
-def get_user_posts(client: Client, username_or_id: str | UUID, limit: int = 20, cursor: datetime | None = None, pinned_post_id: UUID | None = None, sort: UserPostSorting = UserPostSorting.NEW):
+@catch_errors(ValidationError(), NotFound('User'))
+def get_user_posts(client: Client, username_or_id: str | UUID, cursor: datetime | None = None, limit: int = 20, pinned_post_id: UUID | None = None, sort: UserPostSorting = UserPostSorting.NEW):
     return client.request('get', f'posts/user/{username_or_id}', {'limit': limit, 'cursor': cursor, 'pinnedPostId': pinned_post_id, 'sort': sort.value})
 
 @catch_errors(NotFound('Post'))

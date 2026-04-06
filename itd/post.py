@@ -420,19 +420,10 @@ class _OriginalPostValidate(BaseModel, OriginalPost):
 
 
 
-
-class Posts(ITDBaseModel, list[Post]):
+class _BasePosts(ITDBaseModel, list[Post]):
     _refreshable = False
-    cursor: str | datetime | None = None
 
-    def __init__(self, tab: PostsTab = PostsTab.POPULAR, client: Client | None = None) -> None:
-        super().__init__(client)
-        self.tab = tab
-
-    def _fetch(self, client: Client, limit: int = 50) -> dict:
-        return get_posts(client, self.cursor, limit, self.tab).json()['data']
-
-    def load(self, count: int | None = None, limit: int = 50, client: Client | None = None) -> 'Posts':
+    def load(self, count: int | None = None, limit: int = 50, client: Client | None = None) -> '_BasePosts':
         left = count or limit # if None get [LIMIT] firstly
 
         while left > 0: # can be !=, but what if something went wrong
@@ -457,9 +448,25 @@ class Posts(ITDBaseModel, list[Post]):
                 post._client = value
         super().__setattr__(name, value)
 
+
+
+class Posts(_BasePosts):
+    cursor: str | datetime | None = None
+
+    def __init__(self, tab: PostsTab = PostsTab.POPULAR, client: Client | None = None) -> None:
+        super().__init__(client)
+        self.tab = tab
+
+    def _fetch(self, client: Client, limit: int = 50) -> dict:
+        return get_posts(client, self.cursor, limit, self.tab).json()['data']
+
     @classmethod
     def popular(cls, client: Client | None = None): # i think no one will use it (cuz it is equals just to "Posts()") but why not
         return cls(PostsTab.POPULAR, client)
+
+    @classmethod
+    def trending(cls, client: Client | None = None): # same as "popular"
+        return cls.popular(client)
 
     @classmethod
     def following(cls, client: Client | None = None):
@@ -468,3 +475,40 @@ class Posts(ITDBaseModel, list[Post]):
     @classmethod
     def clan(cls, client: Client | None = None):
         return cls(PostsTab.CLAN, client)
+
+
+class UserPosts(_BasePosts):
+    cursor: datetime | None = None
+
+    def __init__(self, user: str | UUID | _UserBase, sorting: UserPostSorting = UserPostSorting.NEW, client: Client | None = None) -> None:
+        super().__init__(client)
+        if isinstance(user, _UserBase):
+            self.user = user
+        else:
+            self.user = User(user, client)
+
+        self.sorting = sorting # sort is busy
+
+    def _fetch(self, client: Client, limit: int = 50) -> dict:
+        if self.sorting == UserPostSorting.NEW:
+            return get_user_posts(client, self.user._identifier, self.cursor, limit, self.user.pinned_post_id, self.sorting).json()['data']
+        return get_user_posts(client, self.user._identifier, self.cursor, limit, sort=self.sorting).json()['data'] # you dont need pinned post for popular -_-
+
+    @classmethod
+    def popular(cls, username_or_id: str | UUID, client: Client | None = None):
+        return cls(username_or_id, UserPostSorting.POPULAR, client)
+
+    @classmethod
+    def new(cls, username_or_id: str | UUID, client: Client | None = None):
+        return cls(username_or_id, UserPostSorting.NEW, client)
+
+
+class LikedPosts(_BasePosts):
+    cursor: datetime | None = None
+
+    def __init__(self, username_or_id: str | UUID, client: Client | None = None) -> None:
+        super().__init__(client)
+        self.username_or_id = username_or_id
+
+    def _fetch(self, client: Client, limit: int = 50) -> dict:
+        return get_liked_posts(client, self.username_or_id, self.cursor, limit).json()['data']
