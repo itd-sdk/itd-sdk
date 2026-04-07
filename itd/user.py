@@ -458,12 +458,13 @@ class Followers(ITDBaseModel, list[User]):
             if ncount is None:
                 left = self.total - len(self)
 
-            left -= len(data['users'])
-            if not data['users']:
+            users = data['users']
+            left -= len(users)
+            if not users or not self.has_more:
                 break
 
-            print(f'fetched {len(data['users'])} left={left} (was {len(self)})')
-            self.extend([User._from_dict(user, False, self.client) for user in data['users']])
+            print(f'fetched {len(users)} left={left} (was {len(self)})')
+            self.extend([User._from_dict(user, False, self.client) for user in users])
         return self
 
     def load_all(self, client: Client | None = None) -> 'Followers':

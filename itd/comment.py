@@ -189,7 +189,7 @@ class Comments(ITDBaseModel, list[Comment]):
 
             comments = data['comments']
             left -= len(comments)
-            if not comments:
+            if not comments or not self.has_more:
                 break
 
             print(f'fetched {len(comments)} left={left} (was {len(self)})')
@@ -277,7 +277,7 @@ class Replies(Comments):
             replies = data['replies']
             left -= len(replies)
 
-            if not replies:
+            if not replies or not self.has_more:
                 break
 
             if left < 0: # um what

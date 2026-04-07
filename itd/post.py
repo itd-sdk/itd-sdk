@@ -260,7 +260,9 @@ class Post(_BasePost):
 
         post['author'] = instance.client.user # TODO: fix fetching user
 
-        for name, value in _PostValidate.model_validate(post).__dict__.items():
+        validated = _PostValidate.model_validate(post)
+        instance._fields_from_data = validated.model_fields_set
+        for name, value in validated.__dict__.items():
             setattr(instance, name, value)
 
         instance._loaded = True
@@ -380,8 +382,11 @@ class OriginalPost(_BasePost):
     def __init__(self, post: dict, client: Client | None = None) -> None:
         super().__init__(client)
 
-        for name, value in _OriginalPostValidate.model_validate(post).__dict__.items():
+        validated = _OriginalPostValidate.model_validate(post)
+        self._fields_from_data = validated.model_fields_set
+        for name, value in validated.__dict__.items():
             setattr(self, name, value)
+        self._loaded = True
 
     def delete(self, client: Client | None = None) -> None:
         super().delete(client)
@@ -478,6 +483,7 @@ class Posts(_BasePosts):
 
 
 class UserPosts(_BasePosts):
+    _load_with_parent = False
     cursor: datetime | None = None
 
     def __init__(self, user: str | UUID | _UserBase, sorting: UserPostSorting = UserPostSorting.NEW, client: Client | None = None) -> None:
@@ -504,6 +510,7 @@ class UserPosts(_BasePosts):
 
 
 class LikedPosts(_BasePosts):
+    _load_with_parent = False
     cursor: datetime | None = None
 
     def __init__(self, username_or_id: str | UUID, client: Client | None = None) -> None:
