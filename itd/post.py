@@ -207,7 +207,7 @@ class Post(_BasePost):
     is_reposted: bool = Field(False, alias='isReposted')
     is_viewed: bool = Field(False, alias='isViewed')
     is_owner: bool = Field(False, alias='isOwner')
-    is_pinned: bool = Field(False, alias='isPinned')  # only for user wall
+    is_pinned: bool | None = Field(None, alias='isPinned')  # only for user wall
 
     dominant: str | None = Field(None, alias='dominantEmoji')
     original_post: 'OriginalPost | None' = Field(None, alias='originalPost')  # for reposts
@@ -521,7 +521,7 @@ class UserPosts(_BasePosts):
         return cls(username_or_id, UserPostSorting.NEW, client)
 
 
-class LikedPosts(_BasePosts):
+class LikedPosts(_BasePosts): # [] if forbidden
     _load_with_parent = False
     cursor: datetime | None = None
 
