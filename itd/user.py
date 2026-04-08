@@ -415,8 +415,9 @@ class Me(_UserBase):
 class _MeValidate(BaseModel, Me):
     @field_validator('pin', mode='plain')
     @classmethod
-    def validate_pin(cls, pin: dict) -> Pin:
-        return Pin(pin)
+    def validate_pin(cls, pin: dict | None) -> Pin | None:
+        if pin:
+            return Pin(pin)
 
     @field_validator('subscription', mode='plain')
     @classmethod
