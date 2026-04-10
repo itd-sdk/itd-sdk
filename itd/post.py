@@ -18,7 +18,7 @@ from itd.routes.posts import (
 )
 from itd.hashtag import Hashtag
 from itd.routes.hashtags import get_posts_by_hashtag
-from itd.utils import to_uuid, parse_datetime
+from itd.utils import to_uuid, parse_datetime, format_attachments, ATTACHMENTS
 
 
 
@@ -177,18 +177,18 @@ class _BasePost(ITDBaseModel):
         self.spans = spans
         return updated_at
 
-    def add_comment(self, content: str | None = None, attachment_ids: list[UUID | str] = [], client: Client | None = None) -> Comment:
+    def add_comment(self, content: str | None = None, attachments: ATTACHMENTS = [], client: Client | None = None) -> Comment:
         """Создать комментарий
 
         Args:
             content (str | None, optional): Содержимое. Defaults to None.
-            attachment_ids (list[UUID | str], optional): Вложения. Defaults to [].
+            attachments (list[UUID | str], optional): Вложения. Defaults to [].
             client (Client | None, optional): Клиент. Defaults to None.
 
         Returns:
             Comment: Комментарий
         """
-        comment = self.comments.new(content, attachment_ids, client or self.client)
+        comment = self.comments.new(content, attachments, client or self.client)
         self.comments_count += 1
         return comment
 
@@ -234,7 +234,7 @@ class Post(_BasePost):
         content: str | None = None,
         spans: list[Span] = [],
         wall_recipient_id: UUID | str | None = None,
-        attachment_ids: list[UUID | str] = [],
+        attachments: ATTACHMENTS = [],
         poll: NewPoll | None = None,
         client: Client | None = None
     ) -> 'Post':
@@ -244,7 +244,7 @@ class Post(_BasePost):
             content (str | None, optional): Содержимое. Defaults to None.
             spans (list[Span], optional): Спаны. Defaults to [].
             wall_recipient_id (UUID | str | None, optional): Получатель (для постов на чужой стене). Defaults to None.
-            attachment_ids (list[UUID | str], optional): Вложения. Defaults to [].
+            attachments (ATTACHMENTS, optional): Вложения. Defaults to [].
             poll (NewPoll | None, optional): Опрос. Defaults to None.
             client (Client | None, optional): Клиент. Defaults to None.
 
@@ -261,7 +261,7 @@ class Post(_BasePost):
             instance._client,
             content, [span.model_dump(mode="json") for span in spans],
             wall_recipient_id,
-            [to_uuid(attachment) for attachment in attachment_ids],
+            format_attachments(attachments),
             poll
         ).json()
 

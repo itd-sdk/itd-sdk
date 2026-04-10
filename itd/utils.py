@@ -4,6 +4,7 @@ from datetime import datetime
 import re
 
 from itd.models.post import Span
+from itd.file import File
 from itd.enums import SpanType
 
 
@@ -25,6 +26,22 @@ def parse_datetime(value: str) -> datetime:
         return datetime.strptime(v + '00', '%Y-%m-%d %H:%M:%S.%f%z')
     except ValueError:
         return datetime.fromisoformat(v)
+
+
+ATTACHMENTS = File | UUID | str | list[File | UUID | str]
+def format_attachments(attachments: ATTACHMENTS = []) -> list[UUID]:
+    if isinstance(attachments, list):
+        formatted = []
+        for attachment in attachments:
+            if isinstance(attachment, File):
+                formatted.append(attachment.id)
+            else:
+                formatted.append(to_uuid(attachment))
+        return formatted
+    else:
+        if isinstance(attachments, File):
+            return [attachments.id]
+        return [to_uuid(attachments)]
 
 
 class HTMLSpanParser(HTMLParser):

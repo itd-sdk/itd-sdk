@@ -8,10 +8,10 @@ from itd.base import ITDBaseModel
 from itd.client import Client
 from itd.enums import CommentSorting, All, ALL, ReportTargetType, ReportReason
 from itd.report import Report
-from itd.utils import parse_datetime, to_uuid, to_nullable_uuid
+from itd.utils import parse_datetime, to_uuid, to_nullable_uuid, format_attachments, ATTACHMENTS
 from itd.routes.comments import get_comments, add_comment, add_reply_comment, get_replies, like_comment, unlike_comment, delete_comment
 from itd.models.user import UserPost
-from itd.file import CommentAttach
+from itd.file import CommentAttach, File
 
 class Comment(ITDBaseModel):
     _refreshable = False
@@ -51,12 +51,12 @@ class Comment(ITDBaseModel):
     def report(self, reason: ReportReason, description: str | None = None, client: Client | None = None) -> Report:
         return Report(self.id, ReportTargetType.COMMENT, reason, description, client or self.client)
 
-    def reply(self, content: str | None = None, attachment_ids: list[UUID | str] = [], user_id: UUID | None = None, client: Client | None = None) -> 'Comment':
+    def reply(self, content: str | None = None, attachments: ATTACHMENTS = [], user_id: UUID | None = None, client: Client | None = None) -> 'Comment':
         """Ответить на комментарий
 
         Args:
             content (str | None, optional): Содержимое. Defaults to None.
-            attachment_ids (list[UUID | str], optional): Вложения. Defaults to [].
+            attachments (ATTACHMENTS, optional): Вложения. Defaults to [].
             user_id (UUID | None, optional): Пользователь (создатель комментария, на который отвечать), если None то берется автор текущего комментария. Defaults to None.
             client (Client | None, optional): Клиент. Defaults to None.
 
@@ -69,7 +69,7 @@ class Comment(ITDBaseModel):
                 self.id,
                 user_id or self.author.id,
                 content,
-                [to_uuid(attachment) for attachment in attachment_ids]
+                format_attachments(attachments)
             ).json(),
             self._post_id,
             client=client or self.client,
@@ -112,7 +112,7 @@ class Comment(ITDBaseModel):
 
 
     @classmethod
-    def new(cls, post_id: UUID, content: str | None = None, attachment_ids: list[UUID | str] = [], client: Client | None = None):
+    def new(cls, post_id: UUID, content: str | None = None, attachments: ATTACHMENTS = [], client: Client | None = None):
         instance = cls.__new__(cls)
         super(Comment, instance).__init__(client)
         instance.__init__(
@@ -120,7 +120,7 @@ class Comment(ITDBaseModel):
                 client or instance.client,
                 post_id,
                 content,
-                [to_uuid(attachment) for attachment in attachment_ids]
+                format_attachments(attachments)
             ).json(),
             post_id,
             client=client or instance.client
@@ -215,8 +215,8 @@ class Comments(ITDBaseModel, list[Comment]):
         return self.load(count, limit, client)
 
 
-    def new(self, content: str | None = None, attachment_ids: list[UUID | str] = [], client: Client | None = None) -> Comment:
-        comment = Comment.new(self._post_id, content, attachment_ids, client=client or self.client)
+    def new(self, content: str | None = None, attachments: ATTACHMENTS = [], client: Client | None = None) -> Comment:
+        comment = Comment.new(self._post_id, content, attachments, client=client or self.client)
         self.insert(0, comment)
         return comment
 
@@ -308,8 +308,8 @@ class Replies(Comments):
         super().__setattr__(name, value)
 
 
-    def new(self, content: str | None = None, attachment_ids: list[str | UUID] = [], client: Client | None = None, *, author_id: str | UUID | None = None) -> 'Comment':
+    def new(self, content: str | None = None, attachments: ATTACHMENTS = [], client: Client | None = None, *, author_id: str | UUID | None = None) -> 'Comment':
         assert self._comment is not None
-        reply = self._comment.reply(content, attachment_ids, to_nullable_uuid(author_id), client)
+        reply = self._comment.reply(content, attachments, to_nullable_uuid(author_id), client)
         self.insert(0, reply)
         return reply
