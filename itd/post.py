@@ -29,6 +29,7 @@ class _BasePost(ITDBaseModel):
 
     content: str
     spans: list[Span] = []
+    attachments: list[PostAttach]
     comments: Comments = Field(default_factory=lambda: Comments(_empty=True))
 
     likes_count: int = Field(0, alias='likesCount')
@@ -207,7 +208,6 @@ class Post(_BasePost):
     id: UUID
 
     poll: Poll | None = None
-    attachments: list[PostAttach]
     edited_at: datetime | None = Field(None, alias='editedAt')
 
     is_liked: bool = Field(False, alias='isLiked')
