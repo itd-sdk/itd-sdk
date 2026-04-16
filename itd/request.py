@@ -12,7 +12,7 @@ from itd.exceptions import (
 
 
 def decode_jwt_payload(jwt_token: str) -> dict[str, Any]:
-    """Декодирует pyload jwt.
+    """Декодирует payload jwt.
 
     Args:
         jwt_token: jwt токен
@@ -81,6 +81,7 @@ def fetch(token: str | None, method: str, url: str, params: dict = {}, files: di
                 'SESSION_REVOKED', 'SESSION_EXPIRED'):
             raise InvalidCookie(res.json()['error']['code'])
     except (JSONDecodeError, AttributeError):
+        print(res.text)
         print('fail to parse json')
 
     return res

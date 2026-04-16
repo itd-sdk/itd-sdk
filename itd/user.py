@@ -62,10 +62,10 @@ class Privacy(ITDBaseModel):
     _user: 'Me | None' = None
     _load_with_parent = False
 
-    is_private: bool = Field(False, alias='isPrivate')
+    is_private: bool = Field(alias='isPrivate')
     wall_access: AccessType = Field(alias='wallAccess')
     likes_visibility: AccessType = Field(alias='likesVisibility')
-    show_last_seen: bool = Field(True, alias='showLastSeen')
+    show_last_seen: bool = Field(alias='showLastSeen')
 
     @refresh_wrapper
     def refresh(self, client: Client | None = None):
@@ -107,7 +107,7 @@ class Privacy(ITDBaseModel):
         return super().__getattribute__(name)
 
 
-class _PrivacyValidate(BaseModel):
+class _PrivacyValidate(BaseModel, Privacy):
     pass
 
 
