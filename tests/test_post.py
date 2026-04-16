@@ -1,15 +1,7 @@
-from time import sleep
-
 from pytest import fixture
 
 from itd.post import Post
 from itd.exceptions import NotFound
-
-
-@fixture(autouse=True)
-def _rate_limit():
-    yield
-    sleep(0.5)
 
 
 @fixture(scope="module")
@@ -41,7 +33,6 @@ def test_view(redis_post):
 
 def test_like_updates_state(redis_post):
     redis_post.unlike()
-    sleep(0.3)
     before = redis_post.likes_count
     redis_post.like()
     assert redis_post.is_liked
@@ -50,7 +41,6 @@ def test_like_updates_state(redis_post):
 
 def test_unlike_updates_state(redis_post):
     redis_post.like()
-    sleep(0.3)
     before = redis_post.likes_count
     redis_post.unlike()
     assert not redis_post.is_liked
@@ -59,7 +49,6 @@ def test_unlike_updates_state(redis_post):
 
 def test_repost_updates_state(client, client2):
     post = Post.new('тест репост', client=client)
-    sleep(0.3)
 
     before = post.reposts_count
     reposted = post.repost(client=client2)
@@ -69,7 +58,6 @@ def test_repost_updates_state(client, client2):
     assert reposted.original_post is not None
     assert reposted.original_post.id == post.id
 
-    sleep(0.3)
     reposted.delete(client2)
     post.delete(client)
 
@@ -104,13 +92,9 @@ def test_pin_unpin_updates_state(owned_post, client):
 
 def test_delete_restore(client):
     post = Post.new('test 2', client=client)
-    sleep(0.3)
 
     post.delete(client)
-    sleep(0.3)
-
     post.restore(client)
-    sleep(0.3)
 
     post.refresh()
     assert post._loaded

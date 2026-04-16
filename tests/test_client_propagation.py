@@ -1,5 +1,3 @@
-from time import sleep
-
 import pytest
 
 from itd.post import Post
@@ -7,12 +5,6 @@ from itd.user import Me
 
 
 POST_ID = '0fe47f03-3fda-4d95-a0f0-8bc0f950df8a'
-
-
-@pytest.fixture(autouse=True)
-def _rate_limit():
-    yield
-    sleep(0.5)
 
 
 def test_post_author_inherits_client(client2):

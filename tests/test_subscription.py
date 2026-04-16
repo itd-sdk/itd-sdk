@@ -1,15 +1,8 @@
 from datetime import datetime
-from time import sleep
 
 import pytest
 
 from itd.user import Me
-
-
-@pytest.fixture(autouse=True)
-def _rate_limit():
-    yield
-    sleep(0.5)
 
 
 @pytest.fixture(scope="module")

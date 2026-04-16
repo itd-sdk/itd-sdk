@@ -1,15 +1,7 @@
-from time import sleep
-
 import pytest
 
 from itd.user import Me
 from itd.enums import AccessType
-
-
-@pytest.fixture(autouse=True)
-def _rate_limit():
-    yield
-    sleep(0.5)
 
 
 @pytest.fixture(scope="module")

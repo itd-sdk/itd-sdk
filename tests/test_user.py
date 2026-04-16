@@ -1,4 +1,3 @@
-from time import sleep
 from uuid import UUID
 
 import pytest
@@ -6,12 +5,6 @@ import pytest
 from itd.user import User, Me, Followers, Following
 from itd.pin import Pin
 from itd.exceptions import PinNotOwned
-
-
-@pytest.fixture(autouse=True)
-def _rate_limit():
-    yield
-    sleep(0.5)
 
 
 @pytest.fixture(scope="module")
@@ -77,7 +70,6 @@ def test_follow_increments_followers_count(client, me2):
     is_following = user.is_following
     if is_following:
         user.unfollow(client)
-        sleep(0.3)
 
     before = user.followers_count
     assert before is not None
@@ -93,7 +85,6 @@ def test_unfollow_decrements_followers_count(client, me2):
     is_following = user.is_following
     if not is_following:
         user.follow(client)
-        sleep(0.3)
 
     before = user.followers_count
     assert before is not None
@@ -114,7 +105,6 @@ def test_block_sets_is_blocking(client, me2):
 def test_unblock_clears_is_blocking(client, me2):
     user = me2.to_user()
     user.block(client)
-    sleep(0.3)
     user.unblock(client)
     assert not user.is_blocking
 

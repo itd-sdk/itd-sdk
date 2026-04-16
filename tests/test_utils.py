@@ -1,5 +1,97 @@
-from itd.utils import parse_html, parse_md
+from uuid import UUID
+
+import pytest
+
+from itd.utils import parse_html, parse_md, to_uuid, to_nullable_uuid, parse_datetime, format_attachments
 from itd.enums import SpanType
+
+
+# --- to_uuid ---
+
+def test_to_uuid_from_str():
+    result = to_uuid('00000000-0000-0000-0000-000000000001')
+    assert isinstance(result, UUID)
+    assert str(result) == '00000000-0000-0000-0000-000000000001'
+
+
+def test_to_uuid_from_uuid():
+    uid = UUID('00000000-0000-0000-0000-000000000001')
+    assert to_uuid(uid) is uid
+
+
+def test_to_uuid_invalid_raises():
+    with pytest.raises(ValueError):
+        to_uuid('not-a-uuid')
+
+
+# --- to_nullable_uuid ---
+
+def test_to_nullable_uuid_none():
+    assert to_nullable_uuid(None) is None
+
+
+def test_to_nullable_uuid_str():
+    result = to_nullable_uuid('00000000-0000-0000-0000-000000000001')
+    assert isinstance(result, UUID)
+
+
+def test_to_nullable_uuid_uuid():
+    uid = UUID('00000000-0000-0000-0000-000000000001')
+    assert to_nullable_uuid(uid) is uid
+
+
+# --- parse_datetime ---
+
+def test_parse_datetime_z_suffix():
+    dt = parse_datetime('2024-01-15T10:30:00Z')
+    assert dt.tzinfo is not None
+    assert dt.year == 2024
+    assert dt.month == 1
+    assert dt.day == 15
+
+
+def test_parse_datetime_with_offset():
+    dt = parse_datetime('2024-01-15T10:30:00+03:00')
+    assert dt.tzinfo is not None
+
+
+def test_parse_datetime_with_microseconds():
+    dt = parse_datetime('2024-01-15T10:30:00.123456Z')
+    assert dt.microsecond == 123456
+
+
+# --- format_attachments ---
+
+def test_format_attachments_empty():
+    assert format_attachments([]) == []
+
+
+def test_format_attachments_str():
+    result = format_attachments('00000000-0000-0000-0000-000000000001')
+    assert len(result) == 1
+    assert isinstance(result[0], UUID)
+
+
+def test_format_attachments_uuid():
+    uid = UUID('00000000-0000-0000-0000-000000000001')
+    result = format_attachments(uid)
+    assert result == [uid]
+
+
+def test_format_attachments_list_of_strs():
+    result = format_attachments([
+        '00000000-0000-0000-0000-000000000001',
+        '00000000-0000-0000-0000-000000000002',
+    ])
+    assert len(result) == 2
+    assert all(isinstance(x, UUID) for x in result)
+
+
+def test_format_attachments_mixed():
+    uid = UUID('00000000-0000-0000-0000-000000000001')
+    result = format_attachments([uid, '00000000-0000-0000-0000-000000000002'])
+    assert len(result) == 2
+    assert result[0] is uid
 
 
 # --- parse_html ---
