@@ -57,6 +57,21 @@ class AccessType(Enum):
     FOLLOWERS = 'followers' # подписчики
     EVERYONE = 'everyone' # все
 
+    def __gt__(self, other):
+        return _HIERARCHY.index(self) > _HIERARCHY.index(other)
+
+    def __lt__(self, other):
+        return _HIERARCHY.index(self) < _HIERARCHY.index(other)
+
+    def __ge__(self, other):
+        return _HIERARCHY.index(self) >= _HIERARCHY.index(other)
+
+    def __le__(self, other):
+        return _HIERARCHY.index(self) <= _HIERARCHY.index(other)
+
+_HIERARCHY = [AccessType.EVERYONE, AccessType.FOLLOWERS, AccessType.MUTUAL, AccessType.EVERYONE] # 100% that hierarcy is spelled wrong
+
+
 class SpanType(Enum):
     MONOSPACE = 'monospace' # моноширный (код)
     STRIKE = 'strike' # зачеркнутый

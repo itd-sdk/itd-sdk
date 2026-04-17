@@ -506,8 +506,6 @@ class Posts(_BasePosts):
 
 
 class _FinitePosts(_BasePosts):
-    _refreshable = True
-
     def load(self, count: int | All = 50, limit: int = 50, client: Client | None = None):
         left = count or limit # if None get [LIMIT] firstly
 
@@ -526,12 +524,12 @@ class _FinitePosts(_BasePosts):
             self.extend([Post._from_dict(post, self._set_loaded, self.client) for post in posts])
         return self
 
-    def refresh(self, count: int | None = None, client: Client | None = None, limit: int = 500):
+    def refresh(self, count: int | All | None = None, client: Client | None = None, limit: int = 50):
         count = count or len(self)
         self.clear()
         return self.load(count, limit, client)
 
-    def load_all(self, limit: int = 500, client: Client | None = None):
+    def load_all(self, limit: int = 50, client: Client | None = None):
         return self.load(ALL, limit, client)
 
     @property
