@@ -10,7 +10,6 @@ from itd.base import ITDBaseModel, refresh_wrapper
 from itd.enums import AccessType, ALL, All, Unset, Role, ReportReason, ReportTargetType
 from itd.exceptions import PinNotOwned
 from itd.pin import Pin
-from itd.models.post import Span
 from itd.poll import NewPoll
 from itd.report import Report
 from itd.routes.etc import get_who_to_follow
@@ -23,7 +22,7 @@ from itd.routes.subscription import get_subscription, pay_subscription, get_paym
 from itd.utils import to_uuid, ATTACHMENTS
 if TYPE_CHECKING:
     from itd.client import Client
-    from itd.post import Post
+    from itd.post import Post, Span
 
 
 class ProfileUser(BaseModel):

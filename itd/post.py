@@ -6,8 +6,7 @@ from pydantic import Field, BaseModel, field_validator
 from itd.base import ITDBaseModel, refresh_wrapper
 from itd.client import Client
 from itd.comment import Comment, Comments
-from itd.enums import PostsTab, UserPostSorting, ReportReason, ReportTargetType
-from itd.models.post import Span
+from itd.enums import PostsTab, UserPostSorting, ReportReason, ReportTargetType, SpanType
 from itd.file import PostAttach
 from itd.user import User, _UserBase
 from itd.poll import Poll, NewPoll, PollOption
@@ -19,6 +18,13 @@ from itd.routes.posts import (
 from itd.hashtag import Hashtag
 from itd.routes.hashtags import get_posts_by_hashtag
 from itd.utils import to_uuid, parse_datetime, format_attachments, ATTACHMENTS
+
+
+class Span(BaseModel):
+    length: int
+    offset: int
+    type: SpanType
+    url: str | None = None
 
 
 
