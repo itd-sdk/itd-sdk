@@ -70,10 +70,10 @@ def fetch(token: str, method: str, url: str, params: dict = {},
     try:
         if res.json().get('error') == 'Too Many Requests':
             raise RateLimitExceeded(res.json().get('retry_after', 0))
+        if res.json().get('error', {}) == 'token expired' or res.json().get('error', {}).get('code') == 'UNAUTHORIZED':
+            raise Unauthorized()
         if res.json().get('error', {}).get('code') == 'RATE_LIMIT_EXCEEDED':
             raise RateLimitExceeded(res.json()['error'].get('retryAfter', 0))
-        if res.json().get('error', {}).get('code') == 'UNAUTHORIZED':
-            raise Unauthorized()
         if res.json().get('error', {}).get('code') == 'ACCOUNT_BANNED':
             raise AccountBanned()
         if res.json().get('error', {}).get('code') == 'PROFILE_REQUIRED':
