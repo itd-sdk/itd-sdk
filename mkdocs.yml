@@ -1,4 +1,5 @@
 site_name: itd-sdk
+site_url: https://itdsdk.qzz.io/docs/
 repo_url: https://github.com/firedotguy/itd-sdk
 
 theme:

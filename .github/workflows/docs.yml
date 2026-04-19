@@ -1,0 +1,42 @@
+name: Deploy docs
+
+on:
+  push:
+    branches: [docs]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - 'itd/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install mkdocs-material mkdocstrings[python] griffe-typingdoc
+
+      - name: Build docs
+        run: mkdocs build -d site
+
+      - name: Deploy to gh-pages/docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages
+          git worktree add gh-pages-branch gh-pages
+          rm -rf gh-pages-branch/docs
+          cp -r site gh-pages-branch/docs
+          cd gh-pages-branch
+          git add docs
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "docs: update documentation"
+          git push origin gh-pages
