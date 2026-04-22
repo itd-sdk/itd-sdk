@@ -136,7 +136,7 @@ wheels = [
 
 [[package]]
 name = "itd-sdk"
-version = "1.8.2"
+version = "1.8.3"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic" },
