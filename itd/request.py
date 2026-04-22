@@ -3,12 +3,52 @@ from json import loads
 from _io import BufferedReader
 from time import time
 from typing import Any
+from urllib.parse import quote
 
 from requests import Response, Session
 from requests.exceptions import JSONDecodeError
 from itd.exceptions import (
     InvalidToken, InvalidCookie, RateLimitExceeded, Unauthorized, AccountBanned, ProfileRequired
 )
+from itd.logger import get_logger
+
+l = get_logger('request')
+
+
+# ai begin ---
+UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0'
+
+def _get_jhash(b: int) -> int:
+    """Calculate DDoS-Guard challenge hash (JS get_jhash port)."""
+    x = 123456789
+    k = 0
+    for i in range(1677696):
+        x = ((x + b) ^ (x + (x % 3) + (x % 17) + b) ^ i) % 16776960
+        if x % 117 == 0:
+            k = (k + 1) % 1111
+    return k
+
+
+def _solve_ddos_guard(session: Session, response: Response) -> bool:
+    """Solve DDoS-Guard JS challenge. Returns True if solved (duplicate request required)."""
+    if '<html>' not in response.text[:500] or 'get_jhash' not in response.text:
+        return False
+
+    js_p = session.cookies.get('__js_p_')
+    if not js_p:
+        return False
+
+    params = js_p.split(',')
+    code = int(params[0])
+
+    l.info('solve challenge code=%s', code)
+    jhash = _get_jhash(code)
+    l.info('solved jhash=%s', jhash)
+
+    session.cookies.set('__jhash_', str(jhash), domain='xn--d1ah4a.com', path='/')
+    session.cookies.set('__jua_', quote(UA, safe=''), domain='xn--d1ah4a.com', path='/')
+
+    return True
 
 
 def decode_jwt_payload(jwt_token: str) -> dict[str, Any]:
@@ -22,12 +62,13 @@ def decode_jwt_payload(jwt_token: str) -> dict[str, Any]:
     """
     parts = jwt_token.split('.')
     if len(parts) != 3:
-        raise ValueError("access токен состоит из трёх сегментов")
+        raise ValueError("Not enough parts in access token")
     payload = parts[1]
     payload += '=' * ((4 - len(payload) % 4) % 4)
     decoded = urlsafe_b64decode(payload).decode('utf-8')
     return loads(decoded)
 
+# --- ai end
 
 def is_token_expired(access_token: str) -> bool:
     """Истёк ли `access_token`.
@@ -48,21 +89,33 @@ def fetch(token: str | None, method: str, url: str, params: dict = {}, files: di
     headers = {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3",
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0', # TODO: set custom user agent
+        'User-Agent': UA,
     }
     if token:
         headers['Authorization'] = 'Bearer ' + token
-    method = method.lower()
-    if method == "get":
-        res = session.get(base, timeout=120 if files else 20, params=params, headers=headers)
+
+    # ai begin ---
+    def _do_request():
+        m = method.lower()
+        if m == "get":
+            return session.get(base, timeout=20, params=params, headers=headers)
+        return session.request(m.upper(), base, timeout=120 if files else 20, json=params, headers=headers, files=files)
+
+    res = _do_request()
+    for _ in range(3):
+        if not _solve_ddos_guard(session, res):
+            break
+        l.debug('ddos-guard cookies: %s', {c.name: c.value for c in session.cookies if c.name.startswith('__')})
+        res = _do_request()
     else:
-        res = session.request(method.upper(), base, timeout=120 if files else 20, json=params, headers=headers, files=files)
+        l.warning('ddos-guard challenge not solved')
+    # --- ai end
 
     if res.status_code == 204:
         return res
 
     if not res.ok:
-        print(res.text)
+        l.debug(res.text)
 
     if res.text == 'UNAUTHORIZED':
         raise InvalidToken()
@@ -81,8 +134,8 @@ def fetch(token: str | None, method: str, url: str, params: dict = {}, files: di
                 'SESSION_REVOKED', 'SESSION_EXPIRED'):
             raise InvalidCookie(res.json()['error']['code'])
     except (JSONDecodeError, AttributeError):
-        print(res.text)
-        print('fail to parse json')
+        l.debug(res.text)
+        l.error('fail to parse json')
 
     return res
 
@@ -99,40 +152,3 @@ def fetch_stream(token: str, url: str, *, session: Session):
         'Sec-WebSocket-Version': '13'
     }
     return session.get(base, headers=headers, stream=True, timeout=None)
-
-
-def auth_fetch(cookies: str, method: str, url: str, params: dict = {}, token: str | None = None) -> Response:
-    session = Session()
-    headers = {
-        "Host": "xn--d1ah4a.com",
-        "Accept": "*/*",
-        "Accept-Language": "ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3",
-        "Referer": "https://xn--d1ah4a.com/",
-        "Origin": "https://xn--d1ah4a.com",
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0', # TODO: set custom user agent
-        "Cookie": cookies
-    }
-    if token:
-        headers['Authorization'] = 'Bearer ' + token
-
-    if method == 'get':
-        res = session.get(f'https://xn--d1ah4a.com/api/{url}', timeout=20, params=params, headers=headers)
-    else:
-        res = session.request(method, f'https://xn--d1ah4a.com/api/{url}', timeout=20, json=params, headers=headers)
-
-    if res.text == 'UNAUTHORIZED':
-        raise InvalidToken()
-    try:
-        if res.json().get('error') == 'Too Many Requests':
-            raise RateLimitExceeded(0)
-        if res.json().get('error', {}).get('code') == 'RATE_LIMIT_EXCEEDED':
-            raise RateLimitExceeded(res.json()['error'].get('retryAfter', 0))
-        if res.json().get('error', {}).get('code') in ('SESSION_NOT_FOUND', 'REFRESH_TOKEN_MISSING',
-                'SESSION_REVOKED', 'SESSION_EXPIRED'):
-            raise InvalidCookie(res.json()['error']['code'])
-        if res.json().get('error', {}).get('code') == 'UNAUTHORIZED':
-            raise Unauthorized()
-    except JSONDecodeError:
-        print('fail to parse json')
-
-    return res
