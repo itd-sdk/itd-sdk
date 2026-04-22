@@ -1,3 +1,3 @@
-from itd.client import Client as ITDClient
+from itd.client import Client as ITDClient, Config as ITDConfig
 
-__all__ = ['ITDClient']
+__all__ = ['ITDClient', 'ITDConfig']

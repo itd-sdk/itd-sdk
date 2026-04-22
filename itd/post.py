@@ -6,7 +6,7 @@ from pydantic import Field, BaseModel, field_validator
 from itd.base import ITDBaseModel, refresh_wrapper, ITDList
 from itd.client import Client
 from itd.comment import Comment, Comments
-from itd.enums import PostsTab, UserPostSorting, ReportReason, ReportTargetType, All, ALL
+from itd.enums import PostsTab, UserPostSorting, ReportReason, ReportTargetType
 from itd.file import PostAttach
 from itd.hashtag import Hashtag
 from itd.poll import Poll, NewPoll, PollOption
@@ -516,7 +516,7 @@ class UserPosts(_BasePosts):
         self.sorting = sorting # sort is busy
 
     def _fetch(self, client: Client, limit: int) -> dict:
-        if self.sorting == UserPostSorting.NEW:
+        if self.sorting == UserPostSorting.NEW and client.config.userposts_add_pinned_post:
             return get_user_posts(client, self.user._identifier, self.cursor, limit, self.user.pinned_post_id, self.sorting).json()['data']
         return get_user_posts(client, self.user._identifier, self.cursor, limit, sort=self.sorting).json()['data'] # you dont need pinned post for popular -_-
 

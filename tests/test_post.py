@@ -78,7 +78,7 @@ def test_add_comment_increments_count(owned_post, client):
 
 
 def test_pin_unpin_updates_state(owned_post, client):
-    previously_pinned_id = client.user.pinned_post_id
+    previously_pinned_id = client.user.to_user().pinned_post_id
 
     owned_post.pin(client)
     assert owned_post.is_pinned
@@ -87,7 +87,7 @@ def test_pin_unpin_updates_state(owned_post, client):
     assert not owned_post.is_pinned
 
     if previously_pinned_id:
-        Post(previously_pinned_id).pin(client)
+        Post(previously_pinned_id, client).pin(client)
 
 
 def test_delete_restore(client):

@@ -12,7 +12,7 @@ from pydantic_core import PydanticUndefinedType
 from itd._default import get_default_client
 from itd.logger import get_logger
 from itd.exceptions import ITDException, ValidationError, RateLimitExceeded
-from itd.enums import All, ALL
+from itd.enums import All, ALL, DebugResponseMode, RateLimitMode
 if TYPE_CHECKING:
     from itd.client import Client
 
@@ -80,7 +80,7 @@ class ITDBaseModel:
                 'field-info': isinstance(attr, FieldInfo),
                 'loads-with-parent': isinstance(attr, ITDBaseModel) and attr._load_with_parent
             }
-            if not _getattr(self, '_loaded') and any(triggers.values()):
+            if not _getattr(self, '_loaded') and any(triggers.values()) and self.client.config.auto_load:
                 l.info('load %s.%s reason=%s', self.__class__.__name__.lower(), name,
                     next((k for k, v in triggers.items() if v))
                 )
@@ -100,7 +100,7 @@ def refresh_wrapper(func):
         if self._validator:
             validated = self._validator().model_validate(data)
             self._fields_from_data = validated.model_fields_set
-            l.debug('refresh %s; recieved %s', self.__class__.__name__.lower(), self._fields_from_data)
+            l.debug('refresh %s', self.__class__.__name__.lower())
             for name, value in validated.__dict__.items():
                 setattr(self, name, value)
 
@@ -121,6 +121,8 @@ def catch_errors(*exceptions: ITDException):
             assert isinstance(res, Response)
             if res.status_code == 204:
                 return res
+            if client.config.debug_response == DebugResponseMode.BEFORE:
+                l.debug('response (raw): %s', res.text)
 
             for exception in exceptions:
                 if (
@@ -140,6 +142,14 @@ def catch_errors(*exceptions: ITDException):
                     if isinstance(exception, ValidationError) and res.json().get('error', {}).get('code') == exception.code:
                         exception.text = res.json()['error']['message']
                     raise exception
+
+            if client.config.debug_response == DebugResponseMode.AFTER:
+                l.debug('response: %s', res.json())
+            if client.config.debug_response == DebugResponseMode.KEYS:
+                if 'data' in res.json():
+                    l.debug('response keys: data - %s', list(res.json()['data'].keys()))
+                else:
+                    l.debug('response keys: %s', list(res.json().keys()))
             res.raise_for_status()
             return res
 
@@ -147,14 +157,21 @@ def catch_errors(*exceptions: ITDException):
     return decorator
 
 
-def rate_limit(default_delay: float | None = None):
+def rate_limit(delay_min: float | None = None, delay_mid: float | None = None, delay_max: float | None = None):
     def decorator(func):
         @wraps(func)
         def wrapper(client: Client, *args, **kwargs) -> Response | None:
-            default = default_delay or client.default_delay
+            if func.__name__ in client.config.rate_limit_actions:
+                delay = client.config.rate_limit_actions[func.__name__]
+            elif client.config.rate_limit == RateLimitMode.NO:
+                delay = 0
+            elif any((delay_min, delay_mid, delay_max)):
+                delay = eval(f'delay_{client.config.rate_limit.value}') or next((i for i in (delay_min, delay_mid, delay_max) if i is not None))
+            else:
+                delay = client.config._rate_limit_default
 
-            if datetime.now() - timedelta(seconds=default) < client.last_actions.get(func.__name__, datetime(2013, 2, 16)):  # my birthday actually
-                delay = default - (datetime.now() - client.last_actions[func.__name__]).seconds
+            if datetime.now() - timedelta(seconds=delay) < client.last_actions.get(func.__name__, datetime(2013, 2, 16)):  # my birthday actually
+                delay -= (datetime.now() - client.last_actions[func.__name__]).seconds
                 l.debug('anti rate limit on %s; wait %ss', func.__name__, delay)
                 sleep(delay)
             client.last_actions[func.__name__] = datetime.now()
@@ -174,13 +191,18 @@ class ITDList(ITDBaseModel, list):
     _limit: int
     _get_total = None
     _refreshable = False
+    has_more = True
     idx = 0
 
     def _fetch(self, client: Client, limit: int) -> dict:
         return {}
 
     # edited by calude, thats so fucking crazy pagination
+    # ai begin ---
     def load(self, count: int | All | None = None, limit: int | None = None, client: Client | None = None):
+        if not (self.has_more or self.client.config.force_load_lists):
+            return []
+
         limit = limit or self._limit
         if isinstance(count, int) and count < limit:
             limit = count
@@ -193,7 +215,8 @@ class ITDList(ITDBaseModel, list):
             data = self._fetch(client or self.client, batch)
             objects = self._get_objects(data)
             self.has_more = self._get_has_more(data)
-            self.cursor = self._get_cursor(data)
+            if self._get_cursor(data) is not None:
+                self.cursor = self._get_cursor(data)
 
             if self._get_total:
                 self.total = self._get_total(data)
@@ -203,13 +226,14 @@ class ITDList(ITDBaseModel, list):
             if left is not None:
                 left -= len(objects)
 
-            l.info('fetched %s %s (was %s)', len(objects), self.__class__.__name__.lower(), len(self))
+            l.info('fetched %s %s (was %s) cursor=%s has_more=%s', len(objects), self.__class__.__name__.lower(), len(self), self.cursor, self.has_more)
             self._extend(objects, client or self.client)
 
             if not self.has_more or not objects:
                 break
 
         return self
+    # --- ai end
 
     def _extend(self, objects: list, client: Client):
         pass
@@ -236,15 +260,20 @@ class ITDList(ITDBaseModel, list):
         return self.load(ALL, limit, client)
 
     def __getitem__(self, index: int):  # pyright: ignore[reportIncompatibleMethodOverride]
-        if index > len(self) - 1:
+        if index > len(self) - 1 and self.client.config.load_on_getitem:
             self._min_total = index + 1
-            self.load(index - len(self) + 1)
+            if isinstance(self.client.config.load_on_getitem_count, All):
+                l.debug('getitem load all')
+                self.load_all()
+            else:
+                l.debug('getitem load %s', index - len(self) + self.client.config.load_on_getitem_count)
+                self.load(index - len(self) + self.client.config.load_on_getitem_count)
         return super().__getitem__(index)
 
     def __next__(self):
         if getattr(self, 'total', None) and self.idx >= self.total:
             raise StopIteration()
-        if self.idx >= len(self):
+        if self.idx >= len(self) and (self.has_more or self.client.config.force_load_lists):
             l.debug('not enough items to call next - load')
             self.load()
         if self.idx >= len(self):

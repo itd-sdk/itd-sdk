@@ -1,6 +1,18 @@
 from enum import Enum
 from typing import Literal
 
+class RateLimitMode(Enum):
+    NO = 'no'
+    MIN = 'min' # for one-time actions (eg script just to like post)
+    MID = 'mid' # for client apps / basic scripts
+    MAX = 'max' # for advanced scripts / userbots
+
+class DebugResponseMode(Enum):
+    NO = 'no'
+    BEFORE = 'before' # before error checks, raw
+    AFTER = 'after' # after error checks, beautitfied
+    KEYS = 'keys' # display only keys (after)
+
 class NotificationType(Enum):
     LIKE = 'like'
     COMMENT = 'comment'

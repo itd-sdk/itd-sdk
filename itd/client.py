@@ -1,6 +1,7 @@
 from uuid import UUID
 from _io import BufferedReader
 from datetime import datetime
+from dataclasses import dataclass, field
 
 from requests import Session
 from requests.adapters import HTTPAdapter
@@ -9,6 +10,7 @@ from itd._default import _default_client, set_default_client
 from itd.exceptions import NoCookie, Unauthorized
 from itd.hashtag import Hashtag
 from itd.request import fetch, decode_jwt_payload
+from itd.enums import RateLimitMode, All, DebugResponseMode
 from itd.user import Me, User
 from itd.routes.auth import refresh_token, change_password, logout
 from itd.routes.search import search
@@ -18,6 +20,35 @@ from itd.logger import get_logger
 l = get_logger('client')
 
 
+@dataclass
+class Config:
+    rate_limit: RateLimitMode = RateLimitMode.MID
+    rate_limit_default: int | None = None # overrides ratelimit mode  # rate limit for standard actions
+    rate_limit_actions: dict[str, float | int] = field(default_factory=lambda: {}) # overrides ratelimit mode  # custom rate limits for specific actions (eg. {'add_comment': 10})
+    # is_logging_enabled: bool = True # TODO
+    # logging_level = 'DEBUG'
+    is_default: bool = False
+    userposts_add_pinned_post: bool = True
+    auto_load: bool = True
+    load_on_getitem: bool = True
+    load_on_getitem_count: int | All = 1
+    force_load_lists: bool = False # load lists even if has_more is False
+    debug_response: DebugResponseMode = DebugResponseMode.NO
+    # parse_mode = None
+
+    def __post_init__(self):
+        if self.rate_limit_default:
+            self._rate_limit_default = self.rate_limit_default
+        elif self.rate_limit == RateLimitMode.MIN:
+            self._rate_limit_default = 0
+        elif self.rate_limit == RateLimitMode.MID:
+            self._rate_limit_default = 0.2
+        else:
+            self._rate_limit_default = 0.4
+
+
+
+
 class Client:
     access_token: str | None = None
     refresh_token: str | None = None
@@ -25,11 +56,12 @@ class Client:
     default_delay: float = 0.2
     _user = None
 
-    def __init__(self, refresh_token: str | None = None, access_token: str | None = None):
+    def __init__(self, refresh_token: str | None = None, access_token: str | None = None, config: Config = Config()):
         l.info('init client refresh=%s access=%s', refresh_token is not None, access_token is not None)
+        self.config = config
 
         self.session = Session()
-        adapter = HTTPAdapter(pool_connections=1, pool_maxsize=10, pool_block=False)
+        adapter = HTTPAdapter(pool_connections=1, pool_maxsize=10, pool_block=False) # idk what is this, (claude added) just for better stability
         self.session.mount('https://', adapter)
 
         if access_token:
@@ -41,7 +73,7 @@ class Client:
             if access_token is None:
                 self.refresh_auth()
 
-        if _default_client is None:
+        if _default_client is None or config.is_default:
             set_default_client(self)
 
     def request(self, method: str, url: str, params: dict = {}, files: dict[str, tuple[str, BufferedReader | bytes]] = {}):

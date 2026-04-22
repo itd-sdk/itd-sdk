@@ -13,7 +13,7 @@ from itd.base import rate_limit, catch_errors
 if TYPE_CHECKING:
     from itd.client import Client
 
-@rate_limit(20)
+@rate_limit(1, 10, 30)
 @catch_errors(NotFound('Wall recipient'), Forbidden('post - some files not owned'), RequiresVerification('Video uploading'), ValidationError())
 def create_post(
     client: Client,
@@ -48,7 +48,7 @@ def get_posts(client: Client, cursor: str | datetime | None = None, limit: int =
 def get_post(client: Client, id: UUID):
     return client.request('get', f'posts/{id}')
 
-@rate_limit()
+@rate_limit(None, 1, 5)
 @catch_errors(NotFound('Post'), Forbidden('edit post'), EditExpired())
 def edit_post(client: Client, id: UUID, content: str, spans: list[dict] = []):
     return client.request('put', f'posts/{id}', {'content': content, 'spans': spans})
@@ -73,7 +73,7 @@ def pin_post(client: Client, id: UUID):
 def unpin_post(client: Client, id: UUID):
     return client.request('delete', f'posts/{id}/pin')
 
-@rate_limit(20)
+@rate_limit(1, 10, 30)
 @catch_errors(NotFound('Post'), AlreadyReposted(), CantRepostYourPost(), ValidationError())
 def repost(client: Client, id: UUID, content: str | None = None):
     data = {}
@@ -96,7 +96,7 @@ def get_liked_posts(client: Client, username_or_id: str | UUID, cursor: datetime
 def get_user_posts(client: Client, username_or_id: str | UUID, cursor: datetime | None = None, limit: int = 20, pinned_post_id: UUID | None = None, sort: UserPostSorting = UserPostSorting.NEW):
     return client.request('get', f'posts/user/{username_or_id}', {'limit': limit, 'cursor': cursor, 'pinnedPostId': pinned_post_id, 'sort': sort.value})
 
-@rate_limit(10)
+@rate_limit(None, 3, 15)
 @catch_errors(NotFound('Post'))
 def like_post(client: Client, id: UUID):
     return client.request('post', f'posts/{id}/like')
