@@ -174,8 +174,6 @@ class _UserBase(ITDBaseModel):
     banner: str | None = None
     bio: str | None = None
 
-    pinned_post_id: UUID | None = Field(None, alias='pinnedPostId') # none if no or blocked
-
     followers_count: int | None = Field(None, alias='followersCount')
     following_count: int | None = Field(None, alias='followingCount')
     posts_count: int = Field(0, alias='postsCount')
@@ -184,8 +182,6 @@ class _UserBase(ITDBaseModel):
     is_blocking: bool = Field(False, alias='isBlockedByThem')
 
     created_at: datetime | None = Field(None, alias='createdAt') # none if blocked
-    last_seen: datetime | dict | None = Field(None, alias='lastSeen') # none if hidden or blocked
-    online: bool = False
 
     def __init__(self, username_or_id: str | UUID, client: Client | None = None) -> None:
         self._identifier = username_or_id
@@ -224,7 +220,12 @@ class User(_UserBase):
     wall_access: AccessType | None = Field(None, alias='wallAccess') # none if blocked
     likes_visibility: AccessType | None = Field(None, alias='likesVisibility') # none if blocked
     is_private: bool | None = Field(None, alias='isPrivate') # none if following or blocked
+
+    pinned_post_id: UUID | None = Field(None, alias='pinnedPostId') # none if no or blocked
+
     is_subscribed: bool = Field(False, alias='hasNuksta')
+    last_seen: datetime | dict | None = Field(None, alias='lastSeen') # none if hidden or blocked
+    online: bool = False
 
     @classmethod
     def _from_dict(cls, data: dict, set_loaded: bool = True, client: Client | None = None):
@@ -390,7 +391,7 @@ class Me(_UserBase):
         for name in _UserValidate.model_fields:
             if hasattr(self, name):
                 setattr(instance, name, getattr(self, name))
-        instance._loaded = self._loaded
+        instance._loaded = False
         return instance
 
     def delete(self) -> None: # should not use other client, because you can get Me only from current client
