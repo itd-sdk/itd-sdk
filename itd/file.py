@@ -31,10 +31,11 @@ class File(ITDBaseModel):
 
     @classmethod
     def from_path(cls, path: str):
-        return cls(
-            basename(path),
-            open(path, 'rb')
-        )
+        with open(path, 'rb') as fl:
+            return cls(
+                basename(path),
+                fl
+            )
 
     @classmethod
     def from_bytes(cls, data: bytes | BufferedReader):
