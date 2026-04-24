@@ -90,9 +90,9 @@ class Privacy(ITDBaseModel):
         if 'showLastSeen' in data:
             self.show_last_seen = data['showLastSeen']
 
-        # if self._user: # TODO
-        #     for field in ('wall_access', 'likes_visibility', 'is_private'):
-        #         setattr(self._user, field, getattr(self, field))
+        if self._user:
+            for field in ('wall_access', 'likes_visibility', 'is_private'):
+                setattr(self._user, field, object.__getattribute__(self, field))
 
     def update_from_fields(self): # you can update fields (like privacy.is_private = True), then exec this func to update
         self.update(self.is_private, self.wall_access, self.likes_visibility, self.show_last_seen)
