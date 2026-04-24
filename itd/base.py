@@ -47,7 +47,10 @@ class ITDBaseModel:
         self._client = client or get_default_client()
 
     def __setattr__(self, name: str, value: Any) -> None:
-        if isinstance(value, ITDBaseModel) and (client := _getattr(self, '_client')):
+        if name not in self._fields_from_data:
+            self._fields_from_data.add(name)
+
+        if isinstance(value, ITDBaseModel) and (client := _getattr(self, '_client')): # ai
             value._client = client
         object.__setattr__(self, name, value)
 
@@ -88,103 +91,6 @@ class ITDBaseModel:
 
         return _getattr(self, name)
 
-
-def refresh_wrapper(func):
-    @wraps(func)
-    def wrapper(self, client: Client | None = None):
-        # if self._loading:
-        #     return
-
-        # self._loading = True
-        data = func(self, client or self.client)
-        if self._validator:
-            validated = self._validator().model_validate(data)
-            self._fields_from_data = validated.model_fields_set
-            l.debug('refresh %s', self.__class__.__name__.lower())
-            for name, value in validated.__dict__.items():
-                setattr(self, name, value)
-
-        # self._loading = False
-        self._loaded = True
-
-    return wrapper
-
-
-
-def catch_errors(*exceptions: ITDException):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(client: Client, *args, **kwargs) -> Response | None:
-            l.info('exec %s %s %s', func.__name__, str(args)[:1000], str(kwargs)[:1000])
-            res: Response = func(client, *args, **kwargs)
-
-            assert isinstance(res, Response)
-            if res.status_code == 204:
-                return res
-            if client.config.debug_response == DebugResponseMode.BEFORE:
-                l.debug('response (raw): %s', res.text)
-
-            for exception in exceptions:
-                if (
-                    getattr(exception, '_reply_comment_user_not_found', False) and res.status_code == 500 and 'Failed query' in res.text or
-                    getattr(exception, '_delete_comment_not_found', False) and res.status_code == 500 and res.text == 'Комментарий не найден' or
-                    getattr(exception, '_liked_posts_user_not_found', False) and res.status_code == 404 and res.text == 'NOT_FOUND' or
-                    getattr(exception, '_report_target_not_found', False) and res.status_code == 400 and 'не найден' in res.json().get('error', {}).get('message', '') or
-                    getattr(exception, '_subscription_not_found', False) and res.json().get('error') == 'Активная подписка не найдена' or
-                    getattr(exception, '_hashtag_not_found', False) and res.json().get('data', {}).get('hashtag', '') == None or
-                    getattr(exception, '_notification_read_error', False) and res.json().get('success') is False or
-                    isinstance(exception, ValidationError) and res.status_code == 422 and 'found' in res.json() or
-
-                    exception.status_code is not None and res.status_code == exception.status_code or
-                    exception.code is not None and res.json().get('error', {}).get('code') == exception.code or
-                    exception.message is not None and res.json().get('error', {}).get('message') == exception.message
-                ):
-                    if isinstance(exception, ValidationError) and res.json().get('error', {}).get('code') == exception.code:
-                        exception.text = res.json()['error']['message']
-                    raise exception
-
-            if client.config.debug_response == DebugResponseMode.AFTER:
-                l.debug('response: %s', res.json())
-            if client.config.debug_response == DebugResponseMode.KEYS:
-                if 'data' in res.json():
-                    l.debug('response keys: data - %s', list(res.json()['data'].keys()))
-                else:
-                    l.debug('response keys: %s', list(res.json().keys()))
-            res.raise_for_status()
-            return res
-
-        return wrapper
-    return decorator
-
-
-def rate_limit(delay_min: float | None = None, delay_mid: float | None = None, delay_max: float | None = None):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(client: Client, *args, **kwargs) -> Response | None:
-            if func.__name__ in client.config.rate_limit_actions:
-                delay = client.config.rate_limit_actions[func.__name__]
-            elif client.config.rate_limit == RateLimitMode.NO:
-                delay = 0
-            elif any((delay_min, delay_mid, delay_max)):
-                delay = eval(f'delay_{client.config.rate_limit.value}') or next((i for i in (delay_min, delay_mid, delay_max) if i is not None))
-            else:
-                delay = client.config._rate_limit_default
-
-            if datetime.now() - timedelta(seconds=delay) < client.last_actions.get(func.__name__, datetime(2013, 2, 16)):  # my birthday actually
-                delay -= (datetime.now() - client.last_actions[func.__name__]).seconds
-                l.debug('anti rate limit on %s; wait %ss', func.__name__, delay)
-                sleep(delay)
-            client.last_actions[func.__name__] = datetime.now()
-
-            while True:
-                try:
-                    return func(client, *args, **kwargs)
-                except RateLimitExceeded as e:
-                    l.info('rate limit on %s; wait %ss', func.__name__, e.retry_after or 10)
-                    sleep(e.retry_after or 10)
-
-        return wrapper
-    return decorator
 
 
 class ITDList(ITDBaseModel, list):
@@ -289,3 +195,101 @@ class ITDList(ITDBaseModel, list):
     @property
     def all(self):
         return self.load_all()
+
+
+def refresh_wrapper(func):
+    @wraps(func)
+    def wrapper(self, client: Client | None = None):
+        # if self._loading:
+        #     return
+
+        # self._loading = True
+        data = func(self, client or self.client)
+        if self._validator:
+            validated = self._validator().model_validate(data)
+            self._fields_from_data = validated.model_fields_set
+            l.debug('refresh %s', self.__class__.__name__.lower())
+            for name, value in validated.__dict__.items():
+                setattr(self, name, value)
+
+        # self._loading = False
+        self._loaded = True
+
+    return wrapper
+
+
+
+def catch_errors(*exceptions: ITDException):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(client: Client, *args, **kwargs) -> Response | None:
+            l.info('exec %s %s %s', func.__name__, str(args)[:1000], str(kwargs)[:1000])
+            res: Response = func(client, *args, **kwargs)
+
+            assert isinstance(res, Response)
+            if res.status_code == 204:
+                return res
+            if client.config.debug_response == DebugResponseMode.BEFORE:
+                l.debug('response (raw): %s', res.text)
+
+            for exception in exceptions:
+                if (
+                    getattr(exception, '_reply_comment_user_not_found', False) and res.status_code == 500 and 'Failed query' in res.text or
+                    getattr(exception, '_delete_comment_not_found', False) and res.status_code == 500 and res.text == 'Комментарий не найден' or
+                    getattr(exception, '_liked_posts_user_not_found', False) and res.status_code == 404 and res.text == 'NOT_FOUND' or
+                    getattr(exception, '_report_target_not_found', False) and res.status_code == 400 and 'не найден' in res.json().get('error', {}).get('message', '') or
+                    getattr(exception, '_subscription_not_found', False) and res.json().get('error') == 'Активная подписка не найдена' or
+                    getattr(exception, '_hashtag_not_found', False) and res.json().get('data', {}).get('hashtag', '') == None or
+                    getattr(exception, '_notification_read_error', False) and res.json().get('success') is False or
+                    isinstance(exception, ValidationError) and res.status_code == 422 and 'found' in res.json() or
+
+                    exception.status_code is not None and res.status_code == exception.status_code or
+                    exception.code is not None and res.json().get('error', {}).get('code') == exception.code or
+                    exception.message is not None and res.json().get('error', {}).get('message') == exception.message
+                ):
+                    if isinstance(exception, ValidationError) and res.json().get('error', {}).get('code') == exception.code:
+                        exception.text = res.json()['error']['message']
+                    raise exception
+
+            if client.config.debug_response == DebugResponseMode.AFTER:
+                l.debug('response: %s', res.json())
+            if client.config.debug_response == DebugResponseMode.KEYS:
+                if 'data' in res.json():
+                    l.debug('response keys: data - %s', list(res.json()['data'].keys()))
+                else:
+                    l.debug('response keys: %s', list(res.json().keys()))
+            res.raise_for_status()
+            return res
+
+        return wrapper
+    return decorator
+
+
+def rate_limit(delay_min: float | None = None, delay_mid: float | None = None, delay_max: float | None = None):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(client: Client, *args, **kwargs) -> Response | None:
+            if func.__name__ in client.config.rate_limit_actions:
+                delay = client.config.rate_limit_actions[func.__name__]
+            elif client.config.rate_limit == RateLimitMode.NO:
+                delay = 0
+            elif any((delay_min, delay_mid, delay_max)):
+                delay = eval(f'delay_{client.config.rate_limit.value}') or next((i for i in (delay_min, delay_mid, delay_max) if i is not None))
+            else:
+                delay = client.config._rate_limit_default
+
+            if datetime.now() - timedelta(seconds=delay) < client.last_actions.get(func.__name__, datetime(2013, 2, 16)):  # my birthday actually
+                delay -= (datetime.now() - client.last_actions[func.__name__]).seconds
+                l.debug('anti rate limit on %s; wait %ss', func.__name__, delay)
+                sleep(delay)
+            client.last_actions[func.__name__] = datetime.now()
+
+            while True:
+                try:
+                    return func(client, *args, **kwargs)
+                except RateLimitExceeded as e:
+                    l.info('rate limit on %s; wait %ss', func.__name__, e.retry_after or 10)
+                    sleep(e.retry_after or 10)
+
+        return wrapper
+    return decorator
