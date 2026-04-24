@@ -39,17 +39,14 @@ class ITDBaseModel:
     _refreshable: bool = True
     _loaded: bool = False
     _loading: bool = False
-    _load_with_parent: bool = True
-    _fields_from_data: set[str] = set()
+    _load_with_parent: bool = True # load parent model if model called
     _validator: Callable[[Any], type[BaseModel]] | None = None # callable (pls use lambda), becuase we havent validator at that moment (it depends on this class)
 
     def __init__(self, client: Client | None = None) -> None:
         self._client = client or get_default_client()
+        self._fields_from_data: set[str] = set()
 
     def __setattr__(self, name: str, value: Any) -> None:
-        if name not in self._fields_from_data:
-            self._fields_from_data.add(name)
-
         if isinstance(value, ITDBaseModel) and (client := _getattr(self, '_client')): # ai
             value._client = client
         object.__setattr__(self, name, value)
@@ -89,7 +86,7 @@ class ITDBaseModel:
                 )
                 self.refresh()
 
-        return _getattr(self, name)
+        return object.__getattribute__(self, name)
 
 
 

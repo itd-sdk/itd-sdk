@@ -2,6 +2,7 @@ from uuid import UUID
 from datetime import datetime
 
 from pydantic import Field, BaseModel, field_validator
+from pydantic.fields import FieldInfo
 
 from itd.base import ITDBaseModel, refresh_wrapper, ITDList
 from itd.client import Client
@@ -209,7 +210,7 @@ class Post(_BasePost):
     is_reposted: bool = Field(False, alias='isReposted')
     is_viewed: bool = Field(False, alias='isViewed')
     is_owner: bool = Field(False, alias='isOwner')
-    is_pinned: bool | None = Field(None, alias='isPinned')  # only for user wall
+    is_pinned_post: bool | None = Field(None, alias='isPinned')  # only for user wall # PLS dont use this value - use post.is_pinned
 
     dominant: str | None = Field(None, alias='dominantEmoji')
     original_post: 'OriginalPost | None' = Field(None, alias='originalPost')  # for reposts
@@ -221,6 +222,16 @@ class Post(_BasePost):
     def __init__(self, id: str | UUID, client: Client | None = None) -> None:
         self.id = to_uuid(id)
         super().__init__(client)
+
+    def for_client(self, client: Client):
+        return Post(self.id, client=client)
+
+    @property
+    def is_pinned(self) -> bool:
+        if object.__getattribute__(self, 'is_pinned_post') is None or isinstance(object.__getattribute__(self, 'is_pinned_post'), FieldInfo):
+            self.is_pinned_post = self.author.pinned_post_id == self.id
+            self._fields_from_data.add('is_pinned_post')
+        return object.__getattribute__(self, 'is_pinned_post')
 
 
     @classmethod
@@ -304,13 +315,13 @@ class Post(_BasePost):
 
     def pin(self, client: Client | None = None) -> None:
         super().pin(client)
-        self.is_pinned = True
-        self.client.user.pinned_post_id = self.id # TODO
+        self.is_pinned_post = True
+        (client or self.client).user.pinned_post_id = self.id # TODO
 
     def unpin(self, client: Client | None = None) -> None:
         super().unpin(client)
-        self.is_pinned = False
-        self.client.user.pinned_post_id = None # TODO
+        self.is_pinned_post = False
+        (client or self.client).user.pinned_post_id = None # TODO
 
     def edit(self, content: str, spans: list[Span] = [], client: Client | None = None) -> datetime:
         updated_at = super().edit(content, spans, client)
@@ -323,7 +334,7 @@ class Post(_BasePost):
 
 
     def __getattribute__(self, name: str):
-        if name == 'author':
+        if name == 'author' and object.__getattribute__(self, '_loaded'):
             try:
                 author = object.__getattribute__(self, 'author')
             except AttributeError:
@@ -418,7 +429,7 @@ class OriginalPost(_BasePost):
 
         for name, value in self.__dict__.items():
             setattr(instance, name, value)
-
+        instance._loaded = False
 
         return instance
 

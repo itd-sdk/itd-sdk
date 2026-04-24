@@ -180,6 +180,8 @@ class _UserBase(ITDBaseModel):
     is_blocked: bool = Field(False, alias='isBlockedByMe')
     is_blocking: bool = Field(False, alias='isBlockedByThem')
 
+    pinned_post_id: UUID | None = Field(None, alias='pinnedPostId') # none if no or blocked
+
     created_at: datetime | None = Field(None, alias='createdAt') # none if blocked
 
     def __init__(self, username_or_id: str | UUID, client: Client | None = None) -> None:
@@ -220,8 +222,6 @@ class User(_UserBase):
     likes_visibility: AccessType | None = Field(None, alias='likesVisibility') # none if blocked
     is_private: bool | None = Field(None, alias='isPrivate') # none if following or blocked
 
-    pinned_post_id: UUID | None = Field(None, alias='pinnedPostId') # none if no or blocked
-
     is_subscribed: bool = Field(False, alias='hasNuksta')
     last_seen: datetime | dict | None = Field(None, alias='lastSeen') # none if hidden or blocked
     online: bool = False
@@ -253,33 +253,45 @@ class User(_UserBase):
     def me(cls, client: Client | None = None) -> 'Me':
         return Me(client)
 
+    def for_client(self, client: Client) -> "User":
+        return User(self._identifier, client=client)
 
     def complete_actions_for_wall_access(self, client: Client | None = None) -> bool:
-        if self.wall_access == AccessType.NOBODY:
+        if client != self.client:
+            user = User(self._identifier, client)
+        else:
+            user = self
+
+        if user.wall_access == AccessType.NOBODY:
             return False
-        if self.wall_access == AccessType.MUTUAL:
-            if self.is_followed_by: # TODO: use is_followed_by/is_following for specified client
-                if not self.is_following:
-                    self.follow(client)
+        if user.wall_access == AccessType.MUTUAL:
+            if user.is_followed_by:
+                if not user.is_following:
+                    user.follow(client)
                 return True
             return False
-        if self.wall_access == AccessType.FOLLOWERS:
-            if not self.is_following:
-                self.follow(client)
+        if user.wall_access == AccessType.FOLLOWERS:
+            if not user.is_following:
+                user.follow(client)
         return True
 
     def complete_actions_for_likes_visibility(self, client: Client | None = None) -> bool:
-        if self.likes_visibility == AccessType.NOBODY:
+        if client != self.client:
+            user = User(self._identifier, client)
+        else:
+            user = self
+
+        if user.likes_visibility == AccessType.NOBODY:
             return False
-        if self.likes_visibility == AccessType.MUTUAL:
-            if self.is_followed_by: # TODO: use is_followed_by/is_following for specified client
-                if not self.is_following:
-                    self.follow(client)
+        if user.likes_visibility == AccessType.MUTUAL:
+            if user.is_followed_by:
+                if not user.is_following:
+                    user.follow(client)
                 return True
             return False
-        if self.likes_visibility == AccessType.FOLLOWERS:
-            if not self.is_following:
-                self.follow(client)
+        if user.likes_visibility == AccessType.FOLLOWERS:
+            if not user.is_following:
+                user.follow(client)
         return True
 
     @property
