@@ -4,6 +4,13 @@ like.py
 __pycache__/
 dist
 itd_sdk.egg-info
-nowkie.gif
-nowkie.webm
-g.gif
+*.webm
+*.gif
+*.mp3
+*.mp4
+.env
+examples/upload_gif.py
+examples/testapi_old.py
+followed.json
+vitalies.json
+_.txt

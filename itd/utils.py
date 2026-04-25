@@ -1,9 +1,47 @@
-# Писал ии, у меня у самого не получилось. Мой код можете найти в комите cd27baa8d65b36cfb1d030bc5a578ac6efb45445 в комментарии
+from uuid import UUID
 from html.parser import HTMLParser
+from datetime import datetime
 import re
 
-from itd.models.post import Span
+from itd.span import Span
+from itd.file import File
 from itd.enums import SpanType
+
+
+def to_uuid(value: str | UUID) -> UUID:
+    if isinstance(value, str):
+        return UUID(value)
+    return value
+
+def to_nullable_uuid(value: str | UUID | None) -> UUID | None:
+    if value is None:
+        return None
+
+    return to_uuid(value)
+
+
+def parse_datetime(value: str) -> datetime:
+    v = value.replace('Z', '+00:00')
+    try:
+        return datetime.strptime(v + '00', '%Y-%m-%d %H:%M:%S.%f%z')
+    except ValueError:
+        return datetime.fromisoformat(v)
+
+
+ATTACHMENTS = File | UUID | str | list[File | UUID | str]
+def format_attachments(attachments: ATTACHMENTS = []) -> list[UUID]:
+    if isinstance(attachments, list):
+        formatted = []
+        for attachment in attachments:
+            if isinstance(attachment, File):
+                formatted.append(attachment.id)
+            else:
+                formatted.append(to_uuid(attachment))
+        return formatted
+    else:
+        if isinstance(attachments, File):
+            return [attachments.id]
+        return [to_uuid(attachments)]
 
 
 class HTMLSpanParser(HTMLParser):
@@ -16,7 +54,7 @@ class HTMLSpanParser(HTMLParser):
         'u': SpanType.UNDERLINE,
         'code': SpanType.MONOSPACE,
         'spoiler': SpanType.SPOILER,
-        'q': SpanType.QUOTE,
+        'q': SpanType.QUOTE
     }
 
     def __init__(self):
