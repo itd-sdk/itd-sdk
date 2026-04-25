@@ -1,3 +1,0 @@
-# Уведомление
-
-::: itd.models.notification

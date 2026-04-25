@@ -30,26 +30,25 @@ extra_css:
 nav:
   - index.md
   - launch.md
-  - base_errors.md
-  - Методы:
-    - methods/posts.md
+  - config.md
+  - Функции:
     - methods/auth.md
-    - methods/users.md
   - API Reference:
     - api/client.md
-    - Models:
-      - api/models/post.md
-      - api/models/comment.md
-      - api/models/user.md
-      - api/models/clan.md
-      - api/models/hashtag.md
-      - api/models/notification.md
-      - api/models/file.md
-      - api/models/pagination.md
-      - api/models/report.md
-      - api/models/event.md
-      - api/models/pin.md
-      - api/models/verification.md
+    - api/user.md
+    - api/post.md
+    - api/comment.md
+    - api/notification.md
+    - api/file.md
+    - api/exceptions.md
+    - api/hashtag.md
+    - api/logger.md
+    - api/pin.md
+    - api/poll.md
+    - api/clan.md
+    - api/report.md
+    - api/span.md
+    - api/request.md
     - api/enums.md
     - api/utils.md
 
@@ -67,6 +66,7 @@ plugins:
               separate_signature: true
               filters:
                 - '!^_'
+                - '!^l$'
               show_symbol_type_heading: true
               show_symbol_type_toc: true
               show_root_heading: true

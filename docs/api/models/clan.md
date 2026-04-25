@@ -1,3 +1,0 @@
-# Клан
-
-::: itd.models.clan

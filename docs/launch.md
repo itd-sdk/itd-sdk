@@ -4,7 +4,7 @@
 Чтобы получить доступ к аккаунту, потребуется `access` или `refresh` token.
 
  * `access_token` - JWT токен, действует около 15 минут, обновляется при перезагрузке страницы.
- * `refresh_token` - Случайная строка, действует более месяца, обновляется при выходе и повторном входе.
+ * `refresh_token` - Случайная строка, действует 7 дней, обнуляется при выходе из аккаунта.
 
 
 !!! danger
@@ -15,8 +15,6 @@
 
 Найти `refresh token` можно найти в запросе `/auth/refresh`:
 ![refresh token](refresh-token.png)
-!!! info
-    Самое главное - "refresh token". Остальные куки - DDoS Guard и Яндекс Метрика
 
 
 ## Запуск клиента
@@ -26,7 +24,7 @@
     ```python
     from itd import ITDClient
 
-    c = ITDClient(cookies='refresh_token=xxx')
+    c = ITDClient('xxx')
     ```
 
 === "access"
@@ -36,15 +34,14 @@
 
     c = ITDClient('eyXXX')
     ```
-<!--
-=== "v2.0"
 
-    ```python
-    from itd import ITDClient
+### Логгер
+Если вы дополнительно хотите видеть логи itd-sdk, можете добавить вызов `setup_logging` перед инициализацией клиента.
+```python
+from itd.logger import setup_logging
+from itd import ITDClient
 
-    # через refresh token
-    c = ITDClient('xxx')
+setup_logging('INFO')
 
-    # через access token
-    c = ITDClient(access_token='eyXXX')
-    ``` -->
+ITDClient('xxx')
+```

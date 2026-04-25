@@ -39,9 +39,6 @@ class _BasePost(ITDBaseModel):
     views_count: int = Field(0, alias='viewsCount')
 
 
-    
-
-
 
 class Post(_BasePost):
     _validator = lambda _: _PostValidate

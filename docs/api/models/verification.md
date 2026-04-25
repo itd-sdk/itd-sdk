@@ -1,3 +1,0 @@
-# Верификация
-
-::: itd.models.verification

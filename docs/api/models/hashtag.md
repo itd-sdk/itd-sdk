@@ -1,3 +1,0 @@
-# Хэштэг
-
-::: itd.models.hashtag

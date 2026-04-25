@@ -1,3 +1,0 @@
-# Комментарий
-
-::: itd.models.comment

@@ -1,3 +1,0 @@
-# Пин
-
-::: itd.models.pin

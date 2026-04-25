@@ -1,3 +1,0 @@
-# Файл
-
-::: itd.models.file

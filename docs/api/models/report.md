@@ -1,3 +1,0 @@
-# Репорт
-
-::: itd.models.report

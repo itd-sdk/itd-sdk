@@ -29,6 +29,12 @@ filetype = [
 logs = [
     "rich>=15.0.0",
 ]
+docs = [
+    "griffe-typingdoc>=0.3.0",
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.7.6",
+    "mkdocstrings[python]>=0.30.1",
+]
 
 [dependency-groups]
 dev = [

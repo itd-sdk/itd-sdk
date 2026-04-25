@@ -1,3 +1,0 @@
-# Пост
-
-::: itd.models.post
