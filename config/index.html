@@ -1,0 +1,1583 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://itdsdk.qzz.io/docs/config/">
+      
+      
+        <link rel="prev" href="../launch/">
+      
+      
+        <link rel="next" href="../methods/auth/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Конфигурация - itd-sdk</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="deep-orange" data-md-color-accent="orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="itd-sdk" class="md-header__button md-logo" aria-label="itd-sdk" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            itd-sdk
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Конфигурация
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/firedotguy/itd-sdk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="itd-sdk" class="md-nav__button md-logo" aria-label="itd-sdk" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    itd-sdk
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/firedotguy/itd-sdk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    itd-sdk
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../launch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Запуск
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Конфигурация
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Конфигурация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Параметры
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Параметры">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rate_limit-ratelimitmode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rate_limit RateLimitMode
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="rate_limit RateLimitMode">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rate_limit_mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Псевдокод: как работает rate_limit_mode внутри
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rate_limit_default-float" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rate_limit_default float
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rate_limit_actions-dictstr-float" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rate_limit_actions : dict[str, float]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#is_default-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_default bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#userposts_add_pinned_post-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        userposts_add_pinned_post bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#auto_load-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        auto_load bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#load_on_getitem-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_on_getitem bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#load_on_getitem_count-int-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_on_getitem_count int | All
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#force_load_lists-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        force_load_lists bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#debug_response-debugresponsemode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        debug_response DebugResponseMode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeout-float" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        timeout float
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeout_file-float" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        timeout_file float
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#url-str" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        url str
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#url_api-str" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        url_api str
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#user_agent-str" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        user_agent str
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#solve_challenge-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        solve_challenge bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Функции
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Функции
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Авторизация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/client/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Клиент
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/user/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Пользователь
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/post/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Пост
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/comment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Комментарий
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/notification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Уведомление
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Файл
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/exceptions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ошибки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/hashtag/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Хэштэг
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/logger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Логгер
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/pin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Пин
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/poll/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Опрос
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/clan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Клан
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Репорт
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/span/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Спан
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/request/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Request
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/enums/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enums
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Утилиты
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Параметры
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Параметры">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rate_limit-ratelimitmode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rate_limit RateLimitMode
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="rate_limit RateLimitMode">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rate_limit_mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Псевдокод: как работает rate_limit_mode внутри
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rate_limit_default-float" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rate_limit_default float
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rate_limit_actions-dictstr-float" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rate_limit_actions : dict[str, float]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#is_default-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_default bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#userposts_add_pinned_post-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        userposts_add_pinned_post bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#auto_load-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        auto_load bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#load_on_getitem-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_on_getitem bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#load_on_getitem_count-int-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_on_getitem_count int | All
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#force_load_lists-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        force_load_lists bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#debug_response-debugresponsemode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        debug_response DebugResponseMode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeout-float" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        timeout float
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeout_file-float" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        timeout_file float
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#url-str" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        url str
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#url_api-str" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        url_api str
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#user_agent-str" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        user_agent str
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#solve_challenge-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        solve_challenge bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="_1">Конфигурация</h1>
+<p>У <code>ITDClient</code> можно настраивать конфигурацию:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">itd</span><span class="w"> </span><span class="kn">import</span> <span class="n">ITDClient</span><span class="p">,</span> <span class="n">ITDConfig</span>
+
+<span class="n">config</span> <span class="o">=</span> <span class="n">ITDConfig</span><span class="p">()</span>
+
+<span class="n">ITDClient</span><span class="p">(</span><span class="s1">&#39;xxx&#39;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="_2">Параметры</h2>
+<h4 id="rate_limit-ratelimitmode">rate_limit <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 5h3l-1.5 2zM5 2h14a2 2 0 0 1 2 2v16c0 1.11-.89 2-2 2H5a2 2 0 0 1-2-2V4c0-1.1.9-2 2-2m0 2v4h14V4zm0 16h14V10H5zm2-8h10v2H7zm0 4h10v2H7z"/></svg></span></span><span class="mdx-badge__text">RateLimitMode</span></span></h4>
+<p>Устанавливает дефолтные значения задержек.<br />
+Обычные запросы - запросы без конкретно утсановленных задержек (например получение постов, подписчиков, удаление поста и тд). У каждого менее обычного запроса (подписка, лайк, комментарий и тд) стоят уже свои задержки (например, при создании поста задержка 5-30 сек взависимости от режима).</p>
+<ul>
+<li><code>RateLmitMode.NO</code>: 0 сек - для простых скриптов</li>
+<li><code>RateLimitMode.MIN</code>: Небольшие задержки (0 сек для обычных запросов) - для кастомных клиентов или маленьких скриптов</li>
+<li><code>RateLimitMode.MID</code>: Средние задержки (0.2 сек для обычных запросов) - для обычных скриптов</li>
+<li><code>RateLimitMode.MAX</code>: Большие задержки (0.4 сек для обычных запросов) - для больших ботов, парсеров</li>
+</ul>
+<h5 id="rate_limit_mode">Псевдокод: как работает rate_limit_mode внутри</h5>
+<div class="highlight"><pre><span></span><code><span class="k">if</span> <span class="n">функция</span> <span class="n">есть</span> <span class="n">в</span> <span class="n">предустановленных</span> <span class="n">значениях</span><span class="p">:</span> <span class="c1"># (1)</span>
+    <span class="n">задержка</span> <span class="o">=</span> <span class="n">предустановленное</span> <span class="n">значение</span>
+<span class="k">elif</span> <span class="n">rate_limit_mode</span> <span class="o">==</span> <span class="n">RateLimitMode</span><span class="o">.</span><span class="n">NO</span><span class="p">:</span>
+    <span class="n">задержка</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="k">elif</span> <span class="nb">any</span><span class="p">((</span><span class="n">кастомная_задержка_min</span><span class="p">,</span> <span class="n">кастомная_задержка_mid</span><span class="p">,</span> <span class="n">кастомная_задержка_max</span><span class="p">)):</span>
+    <span class="n">задержка</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;задержка_</span><span class="si">{</span><span class="nb">min</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="n">mid</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="nb">max</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">задержка</span> <span class="o">=</span> <span class="n">задержка_для_обычных_запросов</span> <span class="c1"># (2)</span>
+</code></pre></div>
+<ol>
+<li>(см. <a href="#rate_limit_actions-dictstr-float">rate_limit_actions</a>)</li>
+<li>(см. <a href="#rate_limit_default-float">rate_limit_default</a>)</li>
+</ol>
+<!-- Также планируется режим `SMART`, который будет выставлять динамическую задержку (например при первых трех комментариях не делать задержку). -->
+
+<h4 id="rate_limit_default-float">rate_limit_default <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M9 4.75A.75.75 0 0 1 9.75 4h4a.75.75 0 0 1 .53 1.28l-1.89 1.892c.312.076.604.18.867.319.742.391 1.244 1.063 1.244 2.005 0 .653-.231 1.208-.629 1.627-.386.408-.894.653-1.408.777-1.01.243-2.225.063-3.124-.527a.751.751 0 0 1 .822-1.254c.534.35 1.32.474 1.951.322.306-.073.53-.201.67-.349.129-.136.218-.32.218-.596 0-.308-.123-.509-.444-.678-.373-.197-.98-.318-1.806-.318a.75.75 0 0 1-.53-1.28l1.72-1.72H9.75A.75.75 0 0 1 9 4.75m-3.587 5.763c-.35-.05-.77.113-.983.572a.75.75 0 1 1-1.36-.632c.508-1.094 1.589-1.565 2.558-1.425 1 .145 1.872.945 1.872 2.222 0 1.433-1.088 2.192-1.79 2.681-.308.216-.571.397-.772.573H7a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75c0-.69.3-1.211.67-1.61.348-.372.8-.676 1.15-.92.8-.56 1.18-.904 1.18-1.474 0-.473-.267-.69-.587-.737M5.604.089A.75.75 0 0 1 6 .75v4.77h.711a.75.75 0 0 1 0 1.5H3.759a.75.75 0 0 1 0-1.5H4.5V2.15l-.334.223a.75.75 0 0 1-.832-1.248l1.5-1a.75.75 0 0 1 .77-.037Z"/></svg></span></span><span class="mdx-badge__text">float</span></span></h4>
+<p>Задержка для обычных запросов (overrides rate_limit_mode).</p>
+<h4 id="rate_limit_actions-dictstr-float">rate_limit_actions <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 3a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2H3v2h1a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h2v-2H8v-5a2 2 0 0 0-2-2 2 2 0 0 0 2-2V5h2V3m6 0a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1v2h-1a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-2v-2h2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5h-2V3z"/></svg></span> <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 6v2H3V6zM3 18h9v-2H3zm0-5h18v-2H3z"/></svg></span>: <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M9 4.75A.75.75 0 0 1 9.75 4h4a.75.75 0 0 1 .53 1.28l-1.89 1.892c.312.076.604.18.867.319.742.391 1.244 1.063 1.244 2.005 0 .653-.231 1.208-.629 1.627-.386.408-.894.653-1.408.777-1.01.243-2.225.063-3.124-.527a.751.751 0 0 1 .822-1.254c.534.35 1.32.474 1.951.322.306-.073.53-.201.67-.349.129-.136.218-.32.218-.596 0-.308-.123-.509-.444-.678-.373-.197-.98-.318-1.806-.318a.75.75 0 0 1-.53-1.28l1.72-1.72H9.75A.75.75 0 0 1 9 4.75m-3.587 5.763c-.35-.05-.77.113-.983.572a.75.75 0 1 1-1.36-.632c.508-1.094 1.589-1.565 2.558-1.425 1 .145 1.872.945 1.872 2.222 0 1.433-1.088 2.192-1.79 2.681-.308.216-.571.397-.772.573H7a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75c0-.69.3-1.211.67-1.61.348-.372.8-.676 1.15-.92.8-.56 1.18-.904 1.18-1.474 0-.473-.267-.69-.587-.737M5.604.089A.75.75 0 0 1 6 .75v4.77h.711a.75.75 0 0 1 0 1.5H3.759a.75.75 0 0 1 0-1.5H4.5V2.15l-.334.223a.75.75 0 0 1-.832-1.248l1.5-1a.75.75 0 0 1 .77-.037Z"/></svg></span></span><span class="mdx-badge__text">dict[str, float]</span></span></h4>
+<p>Кастомная задержка для каждого вида запроса (например <code>get_user</code>). Названия фукнций можно посмотреть в <code>itd.api</code>. Можно использовать, если ваш скрипт повторяет одно и тоже действие (например, постоянно комментирует).</p>
+<div class="admonition example">
+<p class="admonition-title">Example</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="s1">&#39;get_me&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;get_followers: 6, &#39;</span><span class="n">add_comment</span><span class="s1">&#39;: 5.4}</span>
+</code></pre></div>
+</div>
+<h4 id="is_default-bool">is_default <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg></span></span><span class="mdx-badge__text">bool</span></span></h4>
+<p>Сделать ли клиент дефолтным по умолчанию. По умолчанию дефолтным становится первый инициализированный клиент.</p>
+<h4 id="userposts_add_pinned_post-bool">userposts_add_pinned_post <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg></span></span><span class="mdx-badge__text">bool</span></span></h4>
+<p>Добавлять ли закрепленный пост при получении постов пользователя (<code>UserPosts</code>). Для этого потребуется отдельный запрос.</p>
+<h4 id="auto_load-bool">auto_load <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg></span></span><span class="mdx-badge__text">bool</span></span></h4>
+<p>Нужно ли автоматически загружать данные при попытке получение (перехват в <code>__getattribute__</code>). Если выключено, то для получения данных придется перед получением писать <code>obj.refresh()</code>.</p>
+<h4 id="load_on_getitem-bool">load_on_getitem <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg></span></span><span class="mdx-badge__text">bool</span></span></h4>
+<p>Нужно ли подгружать данные при попытке получить еще не загруженный элемент списка (например <code>Posts()[10]</code>). Может выдать <code>AttributeError</code>, если даже после загрузки всех объектов количество меньше желаемого индекса, или если известно общее количество объектов и индекс будет больше него.</p>
+<h4 id="load_on_getitem_count-int-all">load_on_getitem_count <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M9 4.75A.75.75 0 0 1 9.75 4h4a.75.75 0 0 1 .53 1.28l-1.89 1.892c.312.076.604.18.867.319.742.391 1.244 1.063 1.244 2.005 0 .653-.231 1.208-.629 1.627-.386.408-.894.653-1.408.777-1.01.243-2.225.063-3.124-.527a.751.751 0 0 1 .822-1.254c.534.35 1.32.474 1.951.322.306-.073.53-.201.67-.349.129-.136.218-.32.218-.596 0-.308-.123-.509-.444-.678-.373-.197-.98-.318-1.806-.318a.75.75 0 0 1-.53-1.28l1.72-1.72H9.75A.75.75 0 0 1 9 4.75m-3.587 5.763c-.35-.05-.77.113-.983.572a.75.75 0 1 1-1.36-.632c.508-1.094 1.589-1.565 2.558-1.425 1 .145 1.872.945 1.872 2.222 0 1.433-1.088 2.192-1.79 2.681-.308.216-.571.397-.772.573H7a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75c0-.69.3-1.211.67-1.61.348-.372.8-.676 1.15-.92.8-.56 1.18-.904 1.18-1.474 0-.473-.267-.69-.587-.737M5.604.089A.75.75 0 0 1 6 .75v4.77h.711a.75.75 0 0 1 0 1.5H3.759a.75.75 0 0 1 0-1.5H4.5V2.15l-.334.223a.75.75 0 0 1-.832-1.248l1.5-1a.75.75 0 0 1 .77-.037Z"/></svg></span></span><span class="mdx-badge__text">int | All</span></span></h4>
+<p>Количество доп. загружаемых объектов при попытке получить еще не загруженный элемент списка. По умолчанию 1. <code>All</code> - загрузить все.</p>
+<div class="admonition example">
+<p class="admonition-title">Example</p>
+<div class="highlight"><pre><span></span><code><span class="n">config</span><span class="o">.</span><span class="n">load_on_getitem_count</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">posts</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+<span class="nb">len</span><span class="p">(</span><span class="n">posts</span><span class="p">)</span> <span class="c1"># 6</span>
+
+<span class="n">config</span><span class="o">.</span><span class="n">load_on_getitem_count</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">posts</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+<span class="nb">len</span><span class="p">(</span><span class="n">posts</span><span class="p">)</span> <span class="c1"># 12</span>
+
+<span class="n">config</span><span class="o">.</span><span class="n">load_on_getitem_count</span> <span class="o">=</span> <span class="n">ALL</span>
+<span class="n">posts</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span>
+<span class="nb">len</span><span class="p">(</span><span class="n">posts</span><span class="p">)</span> <span class="c1"># 50</span>
+
+<span class="n">config</span><span class="o">.</span><span class="n">load_on_getitem_count</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">posts</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="c1"># AttributeError</span>
+</code></pre></div>
+</div>
+<h4 id="force_load_lists-bool">force_load_lists <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg></span></span><span class="mdx-badge__text">bool</span></span></h4>
+<p>Загружать список, даже если <code>has_more = False</code>. Может уйти в бесконечный цикл при итерации.</p>
+<h4 id="debug_response-debugresponsemode">debug_response <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 5h3l-1.5 2zM5 2h14a2 2 0 0 1 2 2v16c0 1.11-.89 2-2 2H5a2 2 0 0 1-2-2V4c0-1.1.9-2 2-2m0 2v4h14V4zm0 16h14V10H5zm2-8h10v2H7zm0 4h10v2H7z"/></svg></span></span><span class="mdx-badge__text">DebugResponseMode</span></span></h4>
+<p>Режим показа сырых данных ответа API (response). Для работы должен быть установлен логгер с режимом <code>DEBUG</code>.
+ - <code>DebugResponseMode.NO</code>: Не показывать ответ.
+ - <code>DebugResponseMode.BEFORE</code>: Показывать ответ до обработки (сырой).
+ - <code>DebugResponseMode.AFTER</code>: Показывать ответ после обработки (если при обработке возникла ошибка, ответ не выведется).
+ - <code>DebugResponseMode.KEYS</code>: Показывать только ключи ответа (после обработки).</p>
+<h4 id="timeout-float">timeout <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M9 4.75A.75.75 0 0 1 9.75 4h4a.75.75 0 0 1 .53 1.28l-1.89 1.892c.312.076.604.18.867.319.742.391 1.244 1.063 1.244 2.005 0 .653-.231 1.208-.629 1.627-.386.408-.894.653-1.408.777-1.01.243-2.225.063-3.124-.527a.751.751 0 0 1 .822-1.254c.534.35 1.32.474 1.951.322.306-.073.53-.201.67-.349.129-.136.218-.32.218-.596 0-.308-.123-.509-.444-.678-.373-.197-.98-.318-1.806-.318a.75.75 0 0 1-.53-1.28l1.72-1.72H9.75A.75.75 0 0 1 9 4.75m-3.587 5.763c-.35-.05-.77.113-.983.572a.75.75 0 1 1-1.36-.632c.508-1.094 1.589-1.565 2.558-1.425 1 .145 1.872.945 1.872 2.222 0 1.433-1.088 2.192-1.79 2.681-.308.216-.571.397-.772.573H7a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75c0-.69.3-1.211.67-1.61.348-.372.8-.676 1.15-.92.8-.56 1.18-.904 1.18-1.474 0-.473-.267-.69-.587-.737M5.604.089A.75.75 0 0 1 6 .75v4.77h.711a.75.75 0 0 1 0 1.5H3.759a.75.75 0 0 1 0-1.5H4.5V2.15l-.334.223a.75.75 0 0 1-.832-1.248l1.5-1a.75.75 0 0 1 .77-.037Z"/></svg></span></span><span class="mdx-badge__text">float</span></span></h4>
+<p>Таймаут обычного запроса.</p>
+<h4 id="timeout_file-float">timeout_file <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M9 4.75A.75.75 0 0 1 9.75 4h4a.75.75 0 0 1 .53 1.28l-1.89 1.892c.312.076.604.18.867.319.742.391 1.244 1.063 1.244 2.005 0 .653-.231 1.208-.629 1.627-.386.408-.894.653-1.408.777-1.01.243-2.225.063-3.124-.527a.751.751 0 0 1 .822-1.254c.534.35 1.32.474 1.951.322.306-.073.53-.201.67-.349.129-.136.218-.32.218-.596 0-.308-.123-.509-.444-.678-.373-.197-.98-.318-1.806-.318a.75.75 0 0 1-.53-1.28l1.72-1.72H9.75A.75.75 0 0 1 9 4.75m-3.587 5.763c-.35-.05-.77.113-.983.572a.75.75 0 1 1-1.36-.632c.508-1.094 1.589-1.565 2.558-1.425 1 .145 1.872.945 1.872 2.222 0 1.433-1.088 2.192-1.79 2.681-.308.216-.571.397-.772.573H7a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75c0-.69.3-1.211.67-1.61.348-.372.8-.676 1.15-.92.8-.56 1.18-.904 1.18-1.474 0-.473-.267-.69-.587-.737M5.604.089A.75.75 0 0 1 6 .75v4.77h.711a.75.75 0 0 1 0 1.5H3.759a.75.75 0 0 1 0-1.5H4.5V2.15l-.334.223a.75.75 0 0 1-.832-1.248l1.5-1a.75.75 0 0 1 .77-.037Z"/></svg></span></span><span class="mdx-badge__text">float</span></span></h4>
+<p>Таймаут при загрузке файла.</p>
+<h4 id="url-str">url <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 6v2H3V6zM3 18h9v-2H3zm0-5h18v-2H3z"/></svg></span></span><span class="mdx-badge__text">str</span></span></h4>
+<p>Базовый URL ИТД (<code>xn--d1ah4a.com</code>).</p>
+<h4 id="url_api-str">url_api <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 6v2H3V6zM3 18h9v-2H3zm0-5h18v-2H3z"/></svg></span></span><span class="mdx-badge__text">str</span></span></h4>
+<p>URL к API ИТД (<code>https://xn--d1ah4a.com/api</code>). Если не указан, берется из <a href="#url-str">url</a>.</p>
+<h4 id="user_agent-str">user_agent <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 6v2H3V6zM3 18h9v-2H3zm0-5h18v-2H3z"/></svg></span></span><span class="mdx-badge__text">str</span></span></h4>
+<p>User-Agent, под которым обращатся к API ИТД. Если вы делаете свой клиент, можете поставить агент как его имя.</p>
+<h4 id="solve_challenge-bool">solve_challenge <span class="mdx-badge"><span class="mdx-badge__icon"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg></span></span><span class="mdx-badge__text">bool</span></span></h4>
+<p>Нужно ли проходить JS-challenge (защита от скриптов). Иногда включается при запросах к API. Если выключена, скрипт может упасть с ошибкой <code>fail to parse json</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../launch/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Запуск">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Запуск
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../methods/auth/" class="md-footer__link md-footer__link--next" aria-label="Next: Авторизация">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Авторизация
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.footer", "content.code.annotate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
