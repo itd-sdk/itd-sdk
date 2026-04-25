@@ -39,162 +39,7 @@ class _BasePost(ITDBaseModel):
     views_count: int = Field(0, alias='viewsCount')
 
 
-    @refresh_wrapper
-    def refresh(self, client: Client | None = None):
-        return get_post(client or self.client, self.id).json()['data']
-
-
-    def __str__(self) -> str:
-        return self.content
-
-    def __int__(self) -> int:
-        return self.likes_count
-
-    def __eq__(self, other) -> bool:
-        if isinstance(other, _BasePost):
-            return self.id == other.id
-        return False
-
-    def __contains__(self, item) -> bool:
-        return item in self.content
-
-    def __lt__(self, other) -> bool:
-        if isinstance(other, Post):
-            return self.created_at < other.created_at
-        return NotImplemented
-
-    def __gt__(self, other) -> bool:
-        if isinstance(other, Post):
-            return self.created_at > other.created_at
-        return NotImplemented
-
-    def __len__(self) -> int:
-        return len(self.content)
-
-
-    def like(self, client: Client | None = None) -> int:
-        """Лайкнуть пост
-
-        Args:
-            client (Client | None, optional): Клиент. Defaults to None.
-
-        Returns:
-            int: Количество лайков после лайка
-        """
-        likes = like_post(client or self.client, self.id).json()['likesCount']
-        self.likes_count = likes
-        return likes
-
-    def unlike(self, client: Client | None = None) -> int:
-        """Убрать лайк с поста
-
-        Args:
-            client (Client | None, optional): Клиент. Defaults to None.
-
-        Returns:
-            int: Количество лайков после убирания лайка
-        """
-        likes = unlike_post(client or self.client, self.id).json()['likesCount']
-        self.likes_count = likes
-        return likes
-
-    def repost(self, content: str | None = None, client: Client | None = None) -> 'Post':
-        """Репостнуть пост
-
-        Args:
-            content (str | None, optional): Содержимое. Defaults to None.
-            client (Client | None, optional): Клиент. Defaults to None.
-
-        Returns:
-            Post: Пост
-        """
-        post = repost(client or self.client, self.id, content).json()
-        post['author'] = None
-        self.reposts_count += 1
-
-        return Post._from_dict(post, client=client)
-
-    def view(self, client: Client | None = None) -> None:
-        """Просмотреть пост
-
-        Args:
-            client (Client | None, optional): Клиент. Defaults to None.
-        """
-        view_post(client or self.client, self.id)
-        # post can be already viewed, so view will not add; thats why do not change views_count
-
-    def pin(self, client: Client | None = None) -> None:
-        """Закрепить пост
-
-        Args:
-            client (Client | None, optional): Клиент. Defaults to None.
-        """
-        pin_post(client or self.client, self.id)
-
-    def unpin(self, client: Client | None = None) -> None:
-        """Открепить пост
-
-        Args:
-            client (Client | None, optional): Клиент. Defaults to None.
-        """
-        unpin_post(client or self.client, self.id)
-
-    def delete(self, client: Client | None = None) -> None:
-        """Удалить пост
-
-        Args:
-            client (Client | None, optional): Клиент. Defaults to None.
-        """
-        delete_post(client or self.client, self.id)
-
-    # def __del__(self) -> None:
-    #     self.delete()
-
-    def restore(self, client: Client | None = None) -> None:
-        """Вернуть удаленный пост
-
-        Args:
-            client (Client | None, optional): Клиент. Defaults to None.
-        """
-        restore_post(client or self.client, self.id)
-
-    def edit(self, content: str, spans: list[Span] = [], client: Client | None = None) -> datetime:
-        """Редактировать пост
-
-        Args:
-            content (str): Содержимое
-            spans (list[Span], optional): Спаны. Defaults to [].
-            client (Client | None, optional): Клиент. Defaults to None.
-
-        Returns:
-            datetime: Время обновления (updatedAt)
-        """
-        updated_at = parse_datetime(edit_post(client or self.client, self.id, content, [span.model_dump(mode="json") for span in spans]).json()['updatedAt'])
-        self.content = content
-        self.spans = spans
-        return updated_at
-
-    def add_comment(self, content: str | None = None, attachments: ATTACHMENTS = [], client: Client | None = None) -> Comment:
-        """Создать комментарий
-
-        Args:
-            content (str | None, optional): Содержимое. Defaults to None.
-            attachments (list[UUID | str], optional): Вложения. Defaults to [].
-            client (Client | None, optional): Клиент. Defaults to None.
-
-        Returns:
-            Comment: Комментарий
-        """
-        comment = self.comments.new(content, attachments, client or self.client)
-        self.comments_count += 1
-        return comment
-
-    def report(self, reason: ReportReason, description: str | None = None, client: Client | None = None) -> Report:
-        return Report(self.id, ReportTargetType.POST, reason, description, client or self.client)
-
-    @property
-    def url(self) -> str:
-        return f'https://xn--d1ah4a.com/@{self.author.username}/post/{self.id}'
+    
 
 
 
@@ -213,7 +58,7 @@ class Post(_BasePost):
     is_pinned_post: bool | None = Field(None, alias='isPinned')  # only for user wall # PLS dont use this value - use post.is_pinned
 
     dominant: str | None = Field(None, alias='dominantEmoji')
-    original_post: 'OriginalPost | None' = Field(None, alias='originalPost')  # for reposts
+    original_post: 'Post | None' = Field(None, alias='originalPost')  # for reposts
 
     wall_recipient_id: UUID | None = Field(None, alias='wallRecipientId')
     wall_recipient: User | None = Field(None, alias='wallRecipient')
@@ -273,8 +118,6 @@ class Post(_BasePost):
             poll
         ).json()
 
-        post['author'] = None # author is loaded lazily on access via __getattribute__
-
         validated = _PostValidate.model_validate(post)
         instance._fields_from_data = validated.model_fields_set
         for name, value in validated.__dict__.items():
@@ -298,52 +141,181 @@ class Post(_BasePost):
         return instance
 
 
-    def like(self, client: Client | None = None) -> int:
-        count = super().like(client)
-        self.is_liked = True
-        return count
-
-    def unlike(self, client: Client | None = None) -> int:
-        count = super().unlike(client)
-        self.is_liked = False
-        return count
-
-    def repost(self, content: str | None = None, client: Client | None = None) -> 'Post':
-        post = super().repost(content, client)
-        self.is_reposted = True
-        return post
-
-    def pin(self, client: Client | None = None) -> None:
-        super().pin(client)
-        self.is_pinned_post = True
-        (client or self.client).user.pinned_post_id = self.id # TODO: add user.pinned_post
-
-    def unpin(self, client: Client | None = None) -> None:
-        super().unpin(client)
-        self.is_pinned_post = False
-        (client or self.client).user.pinned_post_id = None
-
-    def edit(self, content: str, spans: list[Span] = [], client: Client | None = None) -> datetime:
-        updated_at = super().edit(content, spans, client)
-        self.edited_at = updated_at
-        return updated_at
-
     def vote(self, options: list[str | UUID | PollOption] | str | UUID | PollOption, client: Client | None = None) -> None:
         assert self.poll, 'No poll'
         self.poll.vote(options, client or self.client)
 
+    @refresh_wrapper
+    def refresh(self, client: Client | None = None):
+        return get_post(client or self.client, self.id).json()['data']
+
+
+    def __str__(self) -> str:
+        return self.content
+
+    def __int__(self) -> int:
+        return self.likes_count
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, _BasePost):
+            return self.id == other.id
+        return False
+
+    def __contains__(self, item) -> bool:
+        return item in self.content
+
+    def __lt__(self, other) -> bool:
+        if isinstance(other, Post):
+            return self.created_at < other.created_at
+        return NotImplemented
+
+    def __gt__(self, other) -> bool:
+        if isinstance(other, Post):
+            return self.created_at > other.created_at
+        return NotImplemented
+
+    def __len__(self) -> int:
+        return len(self.content)
+
+
+    def like(self, client: Client | None = None) -> int:
+        """Лайкнуть пост
+
+        Args:
+            client (Client | None, optional): Клиент. Defaults to None.
+
+        Returns:
+            int: Количество лайков после лайка
+        """
+        likes = like_post(client or self.client, self.id).json()['likesCount']
+        self.likes_count = likes
+        if client == self.client:
+            self.is_liked = True
+        return likes
+
+    def unlike(self, client: Client | None = None) -> int:
+        """Убрать лайк с поста
+
+        Args:
+            client (Client | None, optional): Клиент. Defaults to None.
+
+        Returns:
+            int: Количество лайков после убирания лайка
+        """
+        likes = unlike_post(client or self.client, self.id).json()['likesCount']
+        self.likes_count = likes
+        if client == self.client:
+            self.is_liked = False
+        return likes
+
+    def repost(self, content: str | None = None, client: Client | None = None) -> 'Post':
+        """Репостнуть пост
+
+        Args:
+            content (str | None, optional): Содержимое. Defaults to None.
+            client (Client | None, optional): Клиент. Defaults to None.
+
+        Returns:
+            Post: Пост
+        """
+        post = repost(client or self.client, self.id, content).json()
+        self.reposts_count += 1
+        if client == self.client:
+            self.is_reposted = True
+
+        return Post._from_dict(post, client=client)
+
+    def view(self, client: Client | None = None) -> None:
+        """Просмотреть пост
+
+        Args:
+            client (Client | None, optional): Клиент. Defaults to None.
+        """
+        view_post(client or self.client, self.id)
+        if client == self.client:
+            self.is_viewed = True
+        # post can be already viewed, so view will not add; thats why do not change views_count
+
+    def pin(self, client: Client | None = None) -> None:
+        """Закрепить пост
+
+        Args:
+            client (Client | None, optional): Клиент. Defaults to None.
+        """
+        pin_post(client or self.client, self.id)
+        self.is_pinned_post = True
+        (client or self.client).user.pinned_post_id = self.id
+
+    def unpin(self, client: Client | None = None) -> None:
+        """Открепить пост
+
+        Args:
+            client (Client | None, optional): Клиент. Defaults to None.
+        """
+        unpin_post(client or self.client, self.id)
+        self.is_pinned_post = False
+        (client or self.client).user.pinned_post_id = None
+
+    def delete(self, client: Client | None = None) -> None:
+        """Удалить пост
+
+        Args:
+            client (Client | None, optional): Клиент. Defaults to None.
+        """
+        delete_post(client or self.client, self.id)
+
+    # def __del__(self) -> None:
+    #     self.delete()
+
+    def restore(self, client: Client | None = None) -> None:
+        """Вернуть удаленный пост
+
+        Args:
+            client (Client | None, optional): Клиент. Defaults to None.
+        """
+        restore_post(client or self.client, self.id)
+
+    def edit(self, content: str, spans: list[Span] = [], client: Client | None = None) -> datetime:
+        """Редактировать пост
+
+        Args:
+            content (str): Содержимое
+            spans (list[Span], optional): Спаны. Defaults to [].
+            client (Client | None, optional): Клиент. Defaults to None.
+
+        Returns:
+            datetime: Время обновления (updatedAt)
+        """
+        updated_at = parse_datetime(edit_post(client or self.client, self.id, content, [span.model_dump(mode="json") for span in spans]).json()['updatedAt'])
+        self.edited_at = updated_at
+        self.content = content
+        self.spans = spans
+        return updated_at
+
+    def add_comment(self, content: str | None = None, attachments: ATTACHMENTS = [], client: Client | None = None) -> Comment:
+        """Создать комментарий
+
+        Args:
+            content (str | None, optional): Содержимое. Defaults to None.
+            attachments (list[UUID | str], optional): Вложения. Defaults to [].
+            client (Client | None, optional): Клиент. Defaults to None.
+
+        Returns:
+            Comment: Комментарий
+        """
+        comment = self.comments.new(content, attachments, client or self.client)
+        self.comments_count += 1
+        return comment
+
+    def report(self, reason: ReportReason, description: str | None = None, client: Client | None = None) -> Report:
+        return Report(self.id, ReportTargetType.POST, reason, description, client or self.client)
+
+    @property
+    def url(self) -> str:
+        return f'https://xn--d1ah4a.com/@{self.author.username}/post/{self.id}'
+
 
     def __getattribute__(self, name: str):
-        if name == 'author' and object.__getattribute__(self, '_loaded'):
-            try:
-                author = object.__getattribute__(self, 'author')
-            except AttributeError:
-                author = None
-            if author is None:
-                client = object.__getattribute__(self, '_client')
-                if client is not None:
-                    object.__setattr__(self, 'author', client.user)
-
         value = super().__getattribute__(name)
         if name == 'comments' and getattr(value, '_post_id', None) is None:
             value._post_id = self.id
@@ -369,7 +341,7 @@ class _PostValidate(BaseModel, Post): # BaseModel MUST be first or you ll have s
     def validate_original_post(cls, post: dict | None = None):
         if post is None:
             return
-        return OriginalPost(post)
+        return Post._from_dict(post, False)
 
     @field_validator('poll', mode='plain')
     @classmethod
@@ -397,58 +369,6 @@ class _PostValidate(BaseModel, Post): # BaseModel MUST be first or you ll have s
     def validate_wall_recipient(cls, wall_recipient: dict | None):
         if wall_recipient is not None:
             return User._from_dict(wall_recipient, False)
-
-
-
-
-class OriginalPost(_BasePost):
-    is_deleted: bool = Field(False, alias='isDeleted')
-
-    _validator = lambda _: _OriginalPostValidate
-
-    def __init__(self, post: dict, client: Client | None = None) -> None:
-        super().__init__(client)
-
-        validated = _OriginalPostValidate.model_validate(post)
-        self._fields_from_data = validated.model_fields_set
-        for name, value in validated.__dict__.items():
-            setattr(self, name, value)
-        self._loaded = True
-
-    def delete(self, client: Client | None = None) -> None:
-        super().delete(client)
-        self.is_deleted = True
-
-    def restore(self, client: Client | None = None) -> None:
-        super().restore(client)
-        self.is_deleted = False
-
-    def to_post(self, client: Client | None = None) -> Post:
-        instance = Post.__new__(Post)
-        super(Post, instance).__init__(client or self.client)
-
-        for name, value in self.__dict__.items():
-            setattr(instance, name, value)
-        instance._loaded = False
-
-        return instance
-
-
-class _OriginalPostValidate(BaseModel, OriginalPost):
-    @field_validator('created_at', mode='plain')
-    @classmethod
-    def validate_created_at(cls, v: str):
-        return parse_datetime(v)
-
-    @field_validator('comments', mode='plain')
-    @classmethod
-    def validate_comments(cls, comments: list[dict]):
-        return Comments(comments)
-
-    @field_validator('author', mode='plain')
-    @classmethod
-    def validate_author(cls, author: dict):
-        return User._from_dict(author, False)
 
 
 

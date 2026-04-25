@@ -6,7 +6,7 @@ from pydantic import Field, BaseModel, field_validator
 
 from itd.base import ITDBaseModel, ITDList
 from itd.client import Client
-from itd.enums import CommentSorting, All, ALL, ReportTargetType, ReportReason
+from itd.enums import CommentSorting, ReportTargetType, ReportReason
 from itd.report import Report
 from itd.utils import parse_datetime, to_nullable_uuid, format_attachments, ATTACHMENTS
 from itd.api.comments import get_comments, add_comment, add_reply_comment, get_replies, like_comment, unlike_comment, delete_comment
