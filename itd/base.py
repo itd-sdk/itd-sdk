@@ -91,7 +91,7 @@ class ITDBaseModel:
 
 
 class ITDList(ITDBaseModel, list):
-    _limit: int
+    _limit: int = 20
     _get_total = None
     _refreshable = False
     has_more = True

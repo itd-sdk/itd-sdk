@@ -337,11 +337,11 @@ class User(_UserBase):
 
     def block(self, client: Client | None = None) -> None:
         block(client or self.client, self._identifier)
-        self.is_blocking = True
+        self.is_blocked = True
 
     def unblock(self, client: Client | None = None) -> None:
         unblock(client or self.client, self._identifier)
-        self.is_blocking = False
+        self.is_blocked = False
 
     def post(
         self,

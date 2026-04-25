@@ -95,18 +95,24 @@ def test_unfollow_decrements_followers_count(client, me2):
         user.follow(client)
 
 
-def test_block_sets_is_blocking(client, me2):
+def test_block_sets_is_blocked(client, me2):
     user = me2.to_user()
-    user.block(client)
-    assert user.is_blocking
-    user.unblock(client)
+    if user.is_blocked:
+        user.unblock(client)
+    try:
+        user.block(client)
+        assert user.is_blocked
+    finally:
+        user.unblock(client)
 
 
-def test_unblock_clears_is_blocking(client, me2):
+def test_unblock_clears_is_blocked(client, me2):
     user = me2.to_user()
+    if user.is_blocked:
+        user.unblock(client)
     user.block(client)
     user.unblock(client)
-    assert not user.is_blocking
+    assert not user.is_blocked
 
 
 def test_set_pin_unknown_slug_raises(me):
