@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 from os.path import basename
 from _io import BufferedReader
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 from requests import get
@@ -30,9 +31,10 @@ class File(ITDBaseModel):
         self._upload(data)
 
     @classmethod
-    def from_path(cls, path: str):
-        with open(path, 'rb') as fl:
-            return cls(basename(path), fl)
+    def from_path(cls, path: Path | str):
+        if isinstance(path, str):
+            path = Path(path)
+        return cls(path.name, path.read_bytes())
 
     @classmethod
     def from_bytes(cls, data: bytes | BufferedReader):
