@@ -118,8 +118,8 @@ class AlreadyReported(ITDException):
     text = 'Object already reported'
 
 class TooLarge(ITDException):
-    status_code = 414
-    def __init__(self, obj: str):
+    def __init__(self, obj: str, code: int = 414):
+        self.status_code = code
         self.text = f'{obj} is too large'
 
 class PinNotOwned(ITDException):

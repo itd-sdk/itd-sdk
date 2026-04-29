@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 @rate_limit(None, None, 1)
-@catch_errors(UploadError(), ModerationFailed(), InvalidFileType(), TooLarge('File'))
+@catch_errors(UploadError(), ModerationFailed(), InvalidFileType(), TooLarge('File', 413))
 def upload_file(client: Client, name: str, data: BufferedReader | bytes):
     return client.request('post', 'files/upload', files={'file': (name, data)})
 
