@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from itd.request import fetch_stream
 from itd.base import catch_errors, rate_limit
+from itd.exceptions import NotFoundError
 
 if TYPE_CHECKING:
     from itd.client import Client
@@ -14,7 +15,7 @@ def get_notifications(client: Client, limit: int = 20, offset: int = 0):
     return client.request('get', 'notifications', {'limit': limit, 'offset': offset})
 
 @rate_limit()
-@catch_errors()
+@catch_errors(NotFoundError('Notification', _notification_read_error=True))
 def mark_as_read(client: Client, id: UUID):
     return client.request('post', f'notifications/{id}/read')
 

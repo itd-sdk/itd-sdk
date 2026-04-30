@@ -2,7 +2,7 @@ import pytest
 
 from itd.post import Post
 from itd.comment import Comment
-from itd.exceptions import NotFound
+from itd.exceptions import NotFoundError
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def owned_post(client):
     yield post
     try:
         post.delete(client)
-    except NotFound:
+    except NotFoundError:
         pass
 
 
@@ -29,7 +29,7 @@ def comment(owned_post, client):
     yield c
     try:
         c.delete(client)
-    except NotFound:
+    except NotFoundError:
         pass
 
 

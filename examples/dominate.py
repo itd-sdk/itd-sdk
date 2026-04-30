@@ -1,6 +1,6 @@
 from time import sleep
 from itd import ITDClient
-from itd.exceptions import NotFound
+from itd.exceptions import NotFoundError
 
 c = ITDClient(cookies=input('token: '))
 
@@ -12,7 +12,7 @@ while True:
         if not post.is_liked and post.likes_count == 0:
             try:
                 post = c.get_post(post.id)
-            except NotFound:
+            except NotFoundError:
                 continue
             if post.likes_count == 0: # re-check likes count
                 c.like_post(post.id)

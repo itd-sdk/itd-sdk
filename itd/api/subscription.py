@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from itd.exceptions import NotFound
+from itd.exceptions import NotFoundError
 from itd.base import catch_errors, rate_limit
 if TYPE_CHECKING:
     from itd.client import Client
@@ -17,7 +17,7 @@ def pay_subscription(client: Client):
     return client.request('post', 'v1/subscription/pay')
 
 @rate_limit()
-@catch_errors(NotFound('Subsciption', _subscription_not_found=True))
+@catch_errors(NotFoundError('Subsciption', _subscription_not_found=True))
 def toggle_subscription_auto_renewal(client: Client, enabled: bool):
     return client.request('post', 'v1/subscription/auto-renewal', {'enabled': enabled})
 

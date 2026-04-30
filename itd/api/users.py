@@ -4,21 +4,21 @@ from typing import TYPE_CHECKING
 
 from itd.enums import Unset, UNSET, AccessType
 from itd.exceptions import (
-    NotFound, TooLarge, ValidationError, RequiresVerification, UsernameTaken, AlreadyFollowing,
-    AlreadyDeleted, NotDeleted, AlreadyBlocked, NotBlocked, CantFollowYourself, UserBlocked,
-    CantBlockYourself, TargetUserBanned
+    NotFoundError, TooLargeError, ValidationError, RequiresVerificationError, UsernameTakenError, AlreadyFollowingError,
+    AlreadyDeletedError, NotDeletedError, AlreadyBlockedError, NotBlockedError, CantFollowYourselfError, UserBlockedError,
+    CantBlockYourselfError, TargetUserBannedError
 )
 from itd.base import catch_errors, rate_limit
 if TYPE_CHECKING:
     from itd.client import Client
 
 @rate_limit()
-@catch_errors(NotFound('User'), TooLarge('User'), NotFound('Profile'), TargetUserBanned())
+@catch_errors(NotFoundError('User'), TooLargeError('User'), NotFoundError('Profile'), TargetUserBannedError())
 def get_user(client: Client, username_or_id: str | UUID):
     return client.request('get', f'users/{username_or_id}')
 
 @rate_limit(None, 10, 25)
-@catch_errors(ValidationError(), RequiresVerification('GIF banner uploading'), UsernameTaken())
+@catch_errors(ValidationError(), RequiresVerificationError('GIF banner uploading'), UsernameTakenError())
 def update_profile(client: Client, bio: str | None = None, display_name: str | None = None, username: str | None = None, banner_id: UUID | Unset | None = None):
     data = {}
     if bio is not None:
@@ -56,42 +56,42 @@ def update_privacy(client: Client, is_private: bool | None = None, wall_access: 
     return client.request('put', 'users/me/privacy', data)
 
 @rate_limit(5, 30, 80)
-@catch_errors(NotFound('User'), AlreadyFollowing(), TooLarge('Username'), CantFollowYourself(), UserBlocked(), TargetUserBanned())
+@catch_errors(NotFoundError('User'), AlreadyFollowingError(), TooLargeError('Username'), CantFollowYourselfError(), UserBlockedError(), TargetUserBannedError())
 def follow(client: Client, username_or_id: str | UUID):
     return client.request('post', f'users/{username_or_id}/follow')
 
 @rate_limit()
-@catch_errors(NotFound('User'), TooLarge('Username'), TargetUserBanned())
+@catch_errors(NotFoundError('User'), TooLargeError('Username'), TargetUserBannedError())
 def unfollow(client: Client, username_or_id: str | UUID):
     return client.request('delete', f'users/{username_or_id}/follow')
 
 @rate_limit()
-@catch_errors(NotFound('User'), ValidationError(), TooLarge('Username'), TargetUserBanned())
+@catch_errors(NotFoundError('User'), ValidationError(), TooLargeError('Username'), TargetUserBannedError())
 def get_followers(client: Client, username_or_id: str | UUID, page: int = 1): # !! page not works if not me
     return client.request('get', f'users/{username_or_id}/followers', {'page': page})
 
 @rate_limit()
-@catch_errors(NotFound('User'), ValidationError(), TooLarge('Username'), TargetUserBanned())
+@catch_errors(NotFoundError('User'), ValidationError(), TooLargeError('Username'), TargetUserBannedError())
 def get_following(client: Client, username_or_id: str | UUID, page: int = 1): # !! page not works if not me
     return client.request('get', f'users/{username_or_id}/following', {'page': page})
 
 @rate_limit()
-@catch_errors(AlreadyDeleted('Account'))
+@catch_errors(AlreadyDeletedError('Account'))
 def delete_account(client: Client):
     return client.request('delete', 'users/me')
 
 @rate_limit()
-@catch_errors(NotDeleted('Account'))
+@catch_errors(NotDeletedError('Account'))
 def restore_account(client: Client):
     return client.request('post', 'users/me/restore')
 
 @rate_limit()
-@catch_errors(NotFound('User'), TooLarge('Username'), AlreadyBlocked(), CantBlockYourself(), TargetUserBanned())
+@catch_errors(NotFoundError('User'), TooLargeError('Username'), AlreadyBlockedError(), CantBlockYourselfError(), TargetUserBannedError())
 def block(client: Client, username_or_id: str | UUID):
     return client.request('post', f'users/{username_or_id}/block')
 
 @rate_limit()
-@catch_errors(NotFound('User'), TooLarge('Username'), NotBlocked(), TargetUserBanned())
+@catch_errors(NotFoundError('User'), TooLargeError('Username'), NotBlockedError(), TargetUserBannedError())
 def unblock(client: Client, username_or_id: str | UUID):
     return client.request('delete', f'users/{username_or_id}/block')
 

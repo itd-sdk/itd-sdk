@@ -12,7 +12,7 @@ from pydantic_core import PydanticUndefinedType
 
 from itd._default import get_default_client
 from itd.logger import get_logger
-from itd.exceptions import ITDException, ValidationError, RateLimitExceeded, InvalidAccessToken, DEFAULT_ERRORS
+from itd.exceptions import ITDException, ValidationError, RateLimitError, InvalidAccessTokenError, DEFAULT_ERRORS
 from itd.enums import All, ALL, DebugResponseMode, RateLimitMode
 if TYPE_CHECKING:
     from itd.client import Client
@@ -254,13 +254,13 @@ def catch_errors(*exceptions: ITDException):
                     getattr(exception, '_reply_comment_user_not_found', False) and res.status_code == 500 and 'Failed query' in res.text or
                     getattr(exception, '_delete_comment_not_found', False) and res.status_code == 500 and res.text == 'Комментарий не найден' or
                     getattr(exception, '_liked_posts_user_not_found', False) and res.status_code == 404 and res.text == 'NOT_FOUND' or
-                    isinstance(exception, InvalidAccessToken) and res.text == 'UNAUTHORIZED' or
+                    isinstance(exception, InvalidAccessTokenError) and res.text == 'UNAUTHORIZED' or
                     getattr(exception, '_report_target_not_found', False) and res.status_code == 400 and 'не найден' in json.get('error', {}).get('message', '') or
                     getattr(exception, '_subscription_not_found', False) and json.get('error') == 'Активная подписка не найдена' or
                     getattr(exception, '_hashtag_not_found', False) and json.get('data', {}).get('hashtag', '') is None or
                     getattr(exception, '_notification_read_error', False) and json.get('success') is False or
                     isinstance(exception, ValidationError) and res.status_code == 422 and 'found' in json or
-                    isinstance(exception, RateLimitExceeded) and json.get('error') == 'Too Many Requests' or
+                    isinstance(exception, RateLimitError) and json.get('error') == 'Too Many Requests' or
 
                     exception.status_code is not None and res.status_code == exception.status_code or
                     exception.code is not None and json.get('error', {}).get('code') == exception.code or
@@ -268,7 +268,7 @@ def catch_errors(*exceptions: ITDException):
                 ):
                     if isinstance(exception, ValidationError) and json.get('error', {}).get('code') == exception.code:
                         exception.text = json['error']['message']
-                    if isinstance(exception, RateLimitExceeded) and isinstance(json.get('error'), dict) and json['error'].get('code') == exception.code:
+                    if isinstance(exception, RateLimitError) and isinstance(json.get('error'), dict) and json['error'].get('code') == exception.code:
                         exception.retry_after = json['error'].get('retryAfter', 0)
 
                     raise exception
@@ -309,7 +309,7 @@ def rate_limit(delay_min: float | None = None, delay_mid: float | None = None, d
             while True:
                 try:
                     return func(client, *args, **kwargs)
-                except RateLimitExceeded as e:
+                except RateLimitError as e:
                     l.info('rate limit on %s; wait %ss', func.__name__, e.retry_after or 10)
                     sleep(e.retry_after or 10)
 

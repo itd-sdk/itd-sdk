@@ -1,7 +1,7 @@
 from pytest import fixture
 
 from itd.post import Post
-from itd.exceptions import NotFound
+from itd.exceptions import NotFoundError
 
 
 @fixture(scope="module")
@@ -10,7 +10,7 @@ def owned_post(client):
     yield post
     try:
         post.delete(client)
-    except NotFound:
+    except NotFoundError:
         pass
 
 

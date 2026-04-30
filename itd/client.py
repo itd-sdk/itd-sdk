@@ -7,7 +7,7 @@ from requests import Session
 from requests.adapters import HTTPAdapter
 
 from itd._default import _default_client, set_default_client
-from itd.exceptions import Unauthorized, InsufficientAuthLevelError
+from itd.exceptions import UnauthorizedError, InsufficientAuthLevelError
 from itd.hashtag import Hashtag
 from itd.request import fetch, decode_jwt_payload
 from itd.enums import RateLimitMode, All, DebugResponseMode
@@ -105,7 +105,7 @@ class Client:
 
         try:
             return _fetch()
-        except Unauthorized:
+        except UnauthorizedError:
             self.refresh_auth()
             return _fetch()
 
@@ -171,8 +171,8 @@ class Client:
 
         Raises:
             NoCookie: Нет cookie
-            SamePassword: Одинаковые пароли
-            InvalidOldPassword: Старый пароль неверный
+            SamePasswordError: Одинаковые пароли
+            InvalidOldPasswordError: Старый пароль неверный
 
         """
         if not self.refresh_token:

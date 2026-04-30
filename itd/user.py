@@ -7,7 +7,7 @@ from pydantic import Field, BaseModel, field_validator
 
 from itd.base import ITDBaseModel, refresh_wrapper, ITDList
 from itd.enums import AccessType, Unset, Role, ReportReason, ReportTargetType
-from itd.exceptions import PinNotOwned
+from itd.exceptions import PinNotOwnedError
 from itd.pin import Pin
 from itd.poll import NewPoll
 from itd.report import Report
@@ -458,12 +458,12 @@ class Me(_UserBase):
             if pins:
                 pins[0].set()
             else:
-                raise PinNotOwned(pin)
+                raise PinNotOwnedError(pin)
         else:
             if pin.slug in [p.slug for p in self.pins]:
                 pin.set(self.client) # can be not our pin, so set our client to ensure client is correct
             else:
-                raise PinNotOwned(pin.slug)
+                raise PinNotOwnedError(pin.slug)
 
 
     @property

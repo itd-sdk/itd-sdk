@@ -6,15 +6,15 @@ from typing import TYPE_CHECKING
 from itd.enums import PostsTab, UserPostSorting
 from itd.poll import NewPoll
 from itd.exceptions import (
-    NotFound, Forbidden, RequiresVerification, ValidationError, AlreadyReposted, CantRepostYourPost,
-    NotPinned, EditExpired, BannedWordError
+    NotFoundError, ForbiddenError, RequiresVerificationError, ValidationError, AlreadyRepostedError, CantRepostYourselfError,
+    NotPinnedError, EditExpiredError, BannedWordError
 )
 from itd.base import rate_limit, catch_errors
 if TYPE_CHECKING:
     from itd.client import Client
 
 @rate_limit(1, 10, 30)
-@catch_errors(NotFound('Wall recipient'), Forbidden('post - some files not owned'), RequiresVerification('Video uploading'), BannedWordError('Post'), ValidationError())
+@catch_errors(NotFoundError('Wall recipient'), ForbiddenError('post - some files not owned'), RequiresVerificationError('Video uploading'), BannedWordError('Post'), ValidationError())
 def create_post(
     client: Client,
     content: str | None = None,
@@ -44,37 +44,37 @@ def get_posts(client: Client, cursor: str | datetime | None = None, limit: int =
     return client.request('get', 'posts', data)
 
 @rate_limit()
-@catch_errors(NotFound('Post'))
+@catch_errors(NotFoundError('Post'))
 def get_post(client: Client, id: UUID):
     return client.request('get', f'posts/{id}')
 
 @rate_limit(None, 1, 5)
-@catch_errors(NotFound('Post'), Forbidden('edit post'), EditExpired())
+@catch_errors(NotFoundError('Post'), ForbiddenError('edit post'), EditExpiredError())
 def edit_post(client: Client, id: UUID, content: str, spans: list[dict] = []):
     return client.request('put', f'posts/{id}', {'content': content, 'spans': spans})
 
 @rate_limit()
-@catch_errors(NotFound('Post'), Forbidden('delete post'))
+@catch_errors(NotFoundError('Post'), ForbiddenError('delete post'))
 def delete_post(client: Client, id: UUID):
     return client.request('delete', f'posts/{id}')
 
 @rate_limit()
-@catch_errors(NotFound('Post'), Forbidden('restore post'))
+@catch_errors(NotFoundError('Post'), ForbiddenError('restore post'))
 def restore_post(client: Client, id: UUID):
     return client.request('post', f'posts/{id}/restore')
 
 @rate_limit()
-@catch_errors(NotFound('Post'), Forbidden('pin post'))
+@catch_errors(NotFoundError('Post'), ForbiddenError('pin post'))
 def pin_post(client: Client, id: UUID):
     return client.request('post', f'posts/{id}/pin')
 
 @rate_limit()
-@catch_errors(NotPinned())
+@catch_errors(NotPinnedError())
 def unpin_post(client: Client, id: UUID):
     return client.request('delete', f'posts/{id}/pin')
 
 @rate_limit(1, 10, 30)
-@catch_errors(NotFound('Post'), AlreadyReposted(), CantRepostYourPost(), ValidationError())
+@catch_errors(NotFoundError('Post'), AlreadyRepostedError(), CantRepostYourselfError(), ValidationError())
 def repost(client: Client, id: UUID, content: str | None = None):
     data = {}
     if content:
@@ -82,26 +82,26 @@ def repost(client: Client, id: UUID, content: str | None = None):
     return client.request('post', f'posts/{id}/repost', data)
 
 @rate_limit()
-@catch_errors(NotFound('Post'))
+@catch_errors(NotFoundError('Post'))
 def view_post(client: Client, id: UUID):
     return client.request('post', f'posts/{id}/view')
 
 @rate_limit()
-@catch_errors(ValidationError(), NotFound('User'))
+@catch_errors(ValidationError(), NotFoundError('User'))
 def get_liked_posts(client: Client, username_or_id: str | UUID, cursor: datetime | None = None, limit: int = 20):
     return client.request('get', f'posts/user/{username_or_id}/liked', {'limit': limit, 'cursor': cursor})
 
 @rate_limit()
-@catch_errors(ValidationError(), NotFound('User', _liked_posts_user_not_found=True))
+@catch_errors(ValidationError(), NotFoundError('User', _liked_posts_user_not_found=True))
 def get_user_posts(client: Client, username_or_id: str | UUID, cursor: datetime | None = None, limit: int = 20, pinned_post_id: UUID | None = None, sort: UserPostSorting = UserPostSorting.NEW):
     return client.request('get', f'posts/user/{username_or_id}', {'limit': limit, 'cursor': cursor, 'pinnedPostId': pinned_post_id, 'sort': sort.value})
 
 @rate_limit(None, 3, 15)
-@catch_errors(NotFound('Post'))
+@catch_errors(NotFoundError('Post'))
 def like_post(client: Client, id: UUID):
     return client.request('post', f'posts/{id}/like')
 
 @rate_limit()
-@catch_errors(NotFound('Post'))
+@catch_errors(NotFoundError('Post'))
 def unlike_post(client: Client, id: UUID):
     return client.request('delete', f'posts/{id}/like')
