@@ -180,8 +180,6 @@ class _UserBase(ITDBaseModel):
     following_count: int | None = Field(None, alias='followingCount')
     posts_count: int = Field(0, alias='postsCount')
 
-    pinned_post_id: UUID | None = Field(None, alias='pinnedPostId') # none if no or blocked
-
     created_at: datetime | None = Field(None, alias='createdAt') # none if blocked
 
     def __init__(self, username_or_id: str | UUID, client: Client | None = None) -> None:
@@ -234,6 +232,8 @@ class User(_UserBase):
     is_subscribed: bool = Field(False, alias='hasNuksta')
     last_seen: datetime | dict | None = Field(None, alias='lastSeen') # none if hidden or blocked
     online: bool = False
+
+    pinned_post_id: UUID | None = Field(None, alias='pinnedPostId') # none if no or blocked
 
     @classmethod
     def _from_dict(cls, data: dict, set_loaded: bool = True, client: Client | None = None):

@@ -13,7 +13,7 @@ from itd.hashtag import Hashtag
 from itd.poll import Poll, NewPoll, PollOption
 from itd.report import Report
 from itd.span import Span
-from itd.user import User, _UserBase
+from itd.user import User, _UserBase, Me
 from itd.utils import to_uuid, parse_datetime, format_attachments, ATTACHMENTS
 from itd.api.posts import (
     get_post, create_post, like_post, unlike_post, repost, view_post, pin_post, unpin_post,
@@ -428,7 +428,9 @@ class UserPosts(_BasePosts):
 
     def __init__(self, user: str | UUID | _UserBase, sorting: UserPostSorting = UserPostSorting.NEW, client: Client | None = None) -> None:
         super().__init__(client)
-        if isinstance(user, _UserBase):
+        if isinstance(user, Me):
+            self.user = user.to_user()
+        elif isinstance(user, _UserBase):
             self.user = user
         else:
             self.user = User(user, client)
