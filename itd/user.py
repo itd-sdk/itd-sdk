@@ -46,6 +46,9 @@ class Profile(ITDBaseModel):
     authenticated: bool = True
     user: ProfileUser | None
     banned: bool = False
+    profile_required: bool = Field(False, alias='profileRequired')
+    user_id: UUID | None = Field(None, alias='userId')
+    roles: list[Role] | None = None
 
     @refresh_wrapper
     def refresh(self, client: Client | None = None):
@@ -177,9 +180,6 @@ class _UserBase(ITDBaseModel):
     following_count: int | None = Field(None, alias='followingCount')
     posts_count: int = Field(0, alias='postsCount')
 
-    is_blocked: bool = Field(False, alias='isBlockedByMe')
-    is_blocking: bool = Field(False, alias='isBlockedByThem')
-
     pinned_post_id: UUID | None = Field(None, alias='pinnedPostId') # none if no or blocked
 
     created_at: datetime | None = Field(None, alias='createdAt') # none if blocked
@@ -223,6 +223,8 @@ class User(_UserBase):
     is_following: bool = Field(False, alias='isFollowing')
     is_followed_by: bool = Field(False, alias='isFollowedBy')
 
+    is_blocked_by: bool = Field(False, alias='isBlockedByMe')
+    is_blocking: bool = Field(False, alias='isBlockedByThem')
     blocked_at: datetime | None = Field(None, alias='blockedAt')
 
     wall_access: AccessType | None = Field(None, alias='wallAccess') # none if blocked
@@ -352,7 +354,7 @@ class User(_UserBase):
         client: Client | None = None
     ) -> Post:
         from itd.post import Post # stupid circular import
-        return Post.new(content, spans, self, attachments, poll, client or self.client)
+        return Post.new(content, spans, attachments, poll, self, client or self.client)
 
     @property
     def following(self) -> list:
@@ -571,4 +573,5 @@ class WhoToFollow(ITDBaseModel, list[User]):
         self.refresh()
 
     def refresh(self):
+        self.clear()
         self.extend([User._from_dict(user, False, self.client) for user in get_who_to_follow(self.client).json()['users']])

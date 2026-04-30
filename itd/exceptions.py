@@ -9,30 +9,36 @@ class ITDException(Exception):
         return self.text
 
 
-class NoCookie(Exception):
+class AuthError(ITDException):
+    text = ''
     def __str__(self):
-        return 'No cookie for refresh-token required action'
+        return f'Failed to auth: {self.text}'
 
-class NoAuthData(Exception):
-    def __str__(self):
-        return 'No auth data. Provide token or cookies'
+class SessionNotFound(AuthError):
+    code = 'SESSION_NOT_FOUND'
+    text = 'Session not found (invalid refresh token)'
 
-class InvalidCookie(Exception):
-    def __init__(self, code: str):
-        self.code = code
-    def __str__(self):
-        if self.code == 'SESSION_NOT_FOUND':
-            return 'Invalid cookie data: Session not found (incorrect refresh token)'
-        elif self.code == 'REFRESH_TOKEN_MISSING':
-            return 'Invalid cookie data: No refresh token'
-        elif self.code == 'SESSION_EXPIRED':
-            return 'Invalid cookie data: Session expired'
-        # SESSION_REVOKED
-        return 'Invalid cookie data: Session revoked (logged out)'
+class RefreshTokenMissing(AuthError):
+    code = 'REFRESH_TOKEN_MISSING'
+    text = 'No refresh token (possible SDK issue). If you see this, report problem at https://github.com/itd-sdk/itd-sdk/issues/new'
 
-class InvalidToken(Exception):
-    def __str__(self):
-        return 'Invalid access token'
+class SessionExpired(AuthError):
+    code = 'SESSION_EXPIRED'
+    text = 'Session expired'
+
+class Unauthorized(AuthError):
+    code = 'UNAUTHORIZED'
+    text = 'Unauthorized (possible SDK issue). If you see this, report problem at https://github.com/itd-sdk/itd-sdk/issues/new'
+
+class InvalidAccessToken(AuthError):
+    text = 'Invalid access token'
+
+class SessionRevoked(AuthError):
+    code = 'SESSION_REVOKED'
+    text = 'Session revoked (logged out)'
+
+class AccessTokenExpired(AuthError):
+    text = 'Token expired'
 
 class SamePassword(ITDException):
     code = 'SAME_PASSWORD'
@@ -56,39 +62,34 @@ class NotFound(ITDException):
         _subscription_not_found: bool = False,
         _hashtag_not_found: bool = False,
         _liked_posts_user_not_found: bool = False,
-        _report_target_not_found: bool = False
+        _report_target_not_found: bool = False,
+        _notification_read_error: bool = False
     ):
         self.text = f'{obj} not found'
         if message:
             self.message = message
+        if obj == 'Profile':
+            self.code = 'PROFILE_NOT_FOUND'
         self._reply_comment_user_not_found = _reply_comment_user_not_found
         self._subscription_not_found = _subscription_not_found
         self._hashtag_not_found = _hashtag_not_found
         self._liked_posts_user_not_found = _liked_posts_user_not_found
         self._report_target_not_found = _report_target_not_found
+        self._notification_read_error = _notification_read_error
 
-class NotFoundOrForbidden(Exception):
-    def __init__(self, obj: str):
-        self.obj = obj
-    def __str__(self):
-        return f'{self.obj} not found or access denied'
-
-class UserBanned(Exception):
-    def __str__(self):
-        return 'User banned'
+class InsufficientAuthLevelError(ITDException):
+    def __init__(self) :
+        self.text = 'Insufficient auth level'
 
 class ValidationError(ITDException):
     text = 'Failed validation'
     code = 'VALIDATION_ERROR'
 
-class PendingRequestExists(Exception):
-    def __str__(self):
-        return 'Pending verifiaction request already exists'
-
-class RateLimitExceeded(Exception):
-    def __init__(self, retry_after: int):
+class RateLimitExceeded(ITDException):
+    code = 'RATE_LIMIT_EXCEEDED'
+    def __init__(self, retry_after: int = 0):
         self.retry_after = retry_after
-    def __str__(self):
+    def __str__(self) -> str:
         return f'Rate limit exceeded - too much requests. Retry after {self.retry_after} seconds'
 
 class Forbidden(ITDException):
@@ -104,10 +105,6 @@ class UsernameTaken(ITDException):
 class CantFollowYourself(ITDException):
     message = text = 'Cannot follow yourself'
 
-class Unauthorized(Exception):
-    def __str__(self):
-        return 'Auth required - refresh token'
-
 class CantRepostYourPost(ITDException):
     message = 'Cannot repost your own post'
     text = 'Cannot repost your own post'
@@ -121,8 +118,8 @@ class AlreadyReported(ITDException):
     text = 'Object already reported'
 
 class TooLarge(ITDException):
-    status_code = 414
-    def __init__(self, obj: str):
+    def __init__(self, obj: str, code: int = 414):
+        self.status_code = code
         self.text = f'{obj} is too large'
 
 class PinNotOwned(ITDException):
@@ -133,13 +130,13 @@ class AlreadyFollowing(ITDException):
     code = 'CONFLICT'
     text = 'Already following user'
 
-class AccountBanned(Exception): # you banned
-    def __str__(self) -> str:
-        return 'Account has been deactivated'
+class AccountBanned(ITDException): # you banned
+    code = 'ACCOUNT_BANNED'
+    text = 'Account has been deactivated'
 
-class TargetUserBanned(Exception): # target banned (eg if you try to follow banned user)
-    def __str__(self) -> str:
-        return 'Target user has been deactivated'
+class TargetUserBanned(ITDException): # target banned (eg if you try to follow banned user)
+    message = 'Этот аккаунт заблокирован'
+    text = 'Target user has been deactivated'
 
 class OptionsNotBelong(ITDException):
     message = 'Один или несколько вариантов не принадлежат этому опросу'
@@ -149,30 +146,27 @@ class NotMultipleChoice(ITDException):
     message = 'В этом опросе можно выбрать только один вариант'
     text = 'Only one option can be choosen in this poll'
 
-class EmptyOptions(Exception):
-    def __str__(self) -> str:
-        return 'Options cannot be empty (pre-validation)'
-
-class ProfileRequired(Exception):
-    def __str__(self) -> str:
-        return 'No profile. Please create your profile first'
+class ProfileRequired(ITDException):
+    code = 'PROFILE_REQUIRED'
+    text = 'No profile. Please create your profile first'
 
 class RequiresVerification(ITDException):
     code = 'VIDEO_REQUIRES_VERIFICATION'
     def __init__(self, obj: str):
         self.text = f'{obj} allowed only for verificated users'
 
-class InvalidFileType(Exception):
-    def __str__(self) -> str:
-        return 'Invalid file extension'
+class InvalidFileType(ITDException):
+    # code = 'VALIDATION_ERROR'
+    message = 'Недопустимый тип файла'
+    text = 'Invalid file extension'
 
 class EditExpired(ITDException):
     code = 'EDIT_WINDOW_EXPIRED'
     text = 'Editing allowed only in first 48 hours after posting'
 
-class UploadError(Exception):
-    def __str__(self) -> str:
-        return 'Failed to upload file'
+class UploadError(ITDException):
+    code = 'UPLOAD_ERROR'
+    text = 'Failed to upload file (unknown reason)'
 
 class NotDeleted(ITDException):
     code = 'NOT_DELETED'
@@ -200,10 +194,6 @@ class UserBlocked(ITDException):
     code = 'BLOCKED'
     text = 'User blocked (by you or by him)'
 
-class NotFoundOrBlocked(Exception):
-    def __str__(self) -> str:
-        return 'User not found or blocked'
-
 class NotPinned(ITDException):
     code = 'NOT_PINNED'
     text = 'Post not found or is not pinned'
@@ -220,6 +210,5 @@ class ModerationFailed(ITDException):
     code = 'CONTENT_MODERATION_ERROR'
     text = 'Unable to moderate image'
 
-class NotificationNotFoundOrNotBelongOrAlreadyRead(ITDException):
-    text = 'Notification not found, not belong to you or already read'
-    _notification_read_error = True
+
+DEFAULT_ERRORS = (InvalidAccessToken(), RateLimitExceeded(), Unauthorized(), AccessTokenExpired(), AccountBanned())

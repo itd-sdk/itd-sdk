@@ -6,14 +6,14 @@ from itd.enums import Unset, UNSET, AccessType
 from itd.exceptions import (
     NotFound, TooLarge, ValidationError, RequiresVerification, UsernameTaken, AlreadyFollowing,
     AlreadyDeleted, NotDeleted, AlreadyBlocked, NotBlocked, CantFollowYourself, UserBlocked,
-    CantBlockYourself
+    CantBlockYourself, TargetUserBanned
 )
 from itd.base import catch_errors, rate_limit
 if TYPE_CHECKING:
     from itd.client import Client
 
 @rate_limit()
-@catch_errors(NotFound('User'), TooLarge('User'))
+@catch_errors(NotFound('User'), TooLarge('User'), NotFound('Profile'), TargetUserBanned())
 def get_user(client: Client, username_or_id: str | UUID):
     return client.request('get', f'users/{username_or_id}')
 
@@ -56,22 +56,22 @@ def update_privacy(client: Client, is_private: bool | None = None, wall_access: 
     return client.request('put', 'users/me/privacy', data)
 
 @rate_limit(5, 30, 80)
-@catch_errors(NotFound('User'), AlreadyFollowing(), TooLarge('Username'), CantFollowYourself(), UserBlocked())
+@catch_errors(NotFound('User'), AlreadyFollowing(), TooLarge('Username'), CantFollowYourself(), UserBlocked(), TargetUserBanned())
 def follow(client: Client, username_or_id: str | UUID):
     return client.request('post', f'users/{username_or_id}/follow')
 
 @rate_limit()
-@catch_errors(NotFound('User'), TooLarge('Username'))
+@catch_errors(NotFound('User'), TooLarge('Username'), TargetUserBanned())
 def unfollow(client: Client, username_or_id: str | UUID):
     return client.request('delete', f'users/{username_or_id}/follow')
 
 @rate_limit()
-@catch_errors(NotFound('User'), ValidationError(), TooLarge('Username'))
+@catch_errors(NotFound('User'), ValidationError(), TooLarge('Username'), TargetUserBanned())
 def get_followers(client: Client, username_or_id: str | UUID, page: int = 1): # !! page not works if not me
     return client.request('get', f'users/{username_or_id}/followers', {'page': page})
 
 @rate_limit()
-@catch_errors(NotFound('User'), ValidationError(), TooLarge('Username'))
+@catch_errors(NotFound('User'), ValidationError(), TooLarge('Username'), TargetUserBanned())
 def get_following(client: Client, username_or_id: str | UUID, page: int = 1): # !! page not works if not me
     return client.request('get', f'users/{username_or_id}/following', {'page': page})
 
@@ -86,12 +86,12 @@ def restore_account(client: Client):
     return client.request('post', 'users/me/restore')
 
 @rate_limit()
-@catch_errors(NotFound('User'), TooLarge('Username'), AlreadyBlocked(), CantBlockYourself())
+@catch_errors(NotFound('User'), TooLarge('Username'), AlreadyBlocked(), CantBlockYourself(), TargetUserBanned())
 def block(client: Client, username_or_id: str | UUID):
     return client.request('post', f'users/{username_or_id}/block')
 
 @rate_limit()
-@catch_errors(NotFound('User'), TooLarge('Username'), NotBlocked())
+@catch_errors(NotFound('User'), TooLarge('Username'), NotBlocked(), TargetUserBanned())
 def unblock(client: Client, username_or_id: str | UUID):
     return client.request('delete', f'users/{username_or_id}/block')
 

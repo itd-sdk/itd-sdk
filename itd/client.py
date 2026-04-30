@@ -7,7 +7,7 @@ from requests import Session
 from requests.adapters import HTTPAdapter
 
 from itd._default import _default_client, set_default_client
-from itd.exceptions import NoCookie, Unauthorized
+from itd.exceptions import Unauthorized, InsufficientAuthLevelError
 from itd.hashtag import Hashtag
 from itd.request import fetch, decode_jwt_payload
 from itd.enums import RateLimitMode, All, DebugResponseMode
@@ -42,6 +42,7 @@ class Config:
     url_api: str | None = None
     user_agent: str = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0' # my ua btw
     solve_challenge: bool = True
+    load_comments_from_post: bool = False
     # parse_mode = None
 
     def __post_init__(self):
@@ -111,15 +112,12 @@ class Client:
     def refresh_auth(self) -> str:
         """Обновить access token
 
-        Raises:
-            NoCookie: Нет cookie
-
         Returns:
             str: Токен
         """
         l.debug('refresh token')
         if not self.refresh_token:
-            raise NoCookie()
+            raise InsufficientAuthLevelError()
 
         res = refresh_token(self)
         res.raise_for_status()
@@ -178,7 +176,7 @@ class Client:
 
         """
         if not self.refresh_token:
-            raise NoCookie()
+            raise InsufficientAuthLevelError()
 
         change_password(self, old, new)
 

@@ -66,7 +66,7 @@ class Comment(ITDBaseModel):
         return Comment(
             add_reply_comment(
                 client or self._client,
-                self.id,
+                self._comment_id or self.id,
                 user_id or self.author.id,
                 content,
                 format_attachments(attachments)
@@ -163,6 +163,10 @@ class Comments(ITDList, list[Comment]):
     _post_id: UUID
     total: int
     _sorting: CommentSorting = CommentSorting.POPULAR
+
+    @property
+    def _load_with_parent(self): # pyright: ignore[reportIncompatibleVariableOverride]
+        return self.client.config.load_comments_from_post
 
     def __init__(self, data: list[dict] = []):
         super().__init__()

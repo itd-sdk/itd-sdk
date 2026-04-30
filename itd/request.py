@@ -7,10 +7,6 @@ from urllib.parse import quote
 from typing import TYPE_CHECKING
 
 from requests import Response, Session
-from requests.exceptions import JSONDecodeError
-from itd.exceptions import (
-    InvalidToken, InvalidCookie, RateLimitExceeded, Unauthorized, AccountBanned, ProfileRequired
-)
 from itd.logger import get_logger
 if TYPE_CHECKING:
     from itd.client import Client
@@ -51,7 +47,7 @@ def _solve_ddos_guard(session: Session, response: Response, domain: str = 'xn--d
     session.cookies.set('__jua_', quote(user_agent, safe=''), domain=domain, path='/')
 
     return True
-
+# --- ai end
 
 def decode_jwt_payload(jwt_token: str) -> dict[str, Any]:
     """Декодирует payload jwt.
@@ -70,7 +66,6 @@ def decode_jwt_payload(jwt_token: str) -> dict[str, Any]:
     decoded = urlsafe_b64decode(payload).decode('utf-8')
     return loads(decoded)
 
-# --- ai end
 
 def is_token_expired(access_token: str) -> bool:
     """Истёк ли `access_token`.
@@ -125,30 +120,6 @@ def fetch(client: 'Client', method: str, url: str, params: dict = {}, files: dic
         else:
             l.warning('ddos-guard challenge not solved')
     # --- ai end
-
-    if res.status_code == 204:
-        return res
-
-    if res.text == 'UNAUTHORIZED':
-        raise InvalidToken()
-    try:
-        if res.json().get('error') == 'Too Many Requests':
-            raise RateLimitExceeded(res.json().get('retry_after', 0))
-        if res.json().get('error') == 'token expired' or res.json().get('error', {}).get('code') == 'UNAUTHORIZED':
-            raise Unauthorized()
-        if res.json().get('error', {}).get('code') == 'RATE_LIMIT_EXCEEDED':
-            raise RateLimitExceeded(res.json()['error'].get('retryAfter', 0))
-        if res.json().get('error', {}).get('code') == 'ACCOUNT_BANNED':
-            raise AccountBanned()
-        if res.json().get('error', {}).get('code') == 'PROFILE_REQUIRED':
-            raise ProfileRequired()
-        if res.json().get('error', {}).get('code') in (
-            'SESSION_NOT_FOUND', 'REFRESH_TOKEN_MISSING', 'SESSION_REVOKED', 'SESSION_EXPIRED'
-        ):
-            raise InvalidCookie(res.json()['error']['code'])
-    except (JSONDecodeError, AttributeError):
-        l.debug(res.text)
-        l.error('fail to parse json')
 
     return res
 

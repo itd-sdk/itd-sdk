@@ -340,7 +340,7 @@ wheels = [
 
 [[package]]
 name = "itd-sdk"
-version = "2.0.0"
+version = "2.0.0rc2"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic" },

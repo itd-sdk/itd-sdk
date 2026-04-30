@@ -5,13 +5,14 @@ from time import sleep
 from datetime import datetime, timedelta
 
 from requests import Response
+from requests.exceptions import JSONDecodeError
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefinedType
 
 from itd._default import get_default_client
 from itd.logger import get_logger
-from itd.exceptions import ITDException, ValidationError, RateLimitExceeded
+from itd.exceptions import ITDException, ValidationError, RateLimitExceeded, InvalidAccessToken, DEFAULT_ERRORS
 from itd.enums import All, ALL, DebugResponseMode, RateLimitMode
 if TYPE_CHECKING:
     from itd.client import Client
@@ -64,23 +65,27 @@ class ITDBaseModel:
 
 
     def __getattribute__(self, name: str) -> Any:
-        if _getattr(self, '_refreshable'):
+        if _getattr(self, '_refreshable') and not name.startswith('_') or name in ('client', 'model_fields_set'):
             try:
                 attr = _getattr(self, name)
             except AttributeError:
                 attr = None
 
-            if name.startswith('_') or callable(attr) or name in ('client', 'model_fields_set'):
-                return attr
+            if callable(attr):
+                return object.__getattribute__(self, name)
 
             fields_from_data = _getattr(self, '_fields_from_data', ())
             triggers = {
                 'default': name not in fields_from_data and _field_has_default(type(self), name),
                 'none': attr is None and not _field_has_default(type(self), name),
-                'field-info': isinstance(attr, FieldInfo),
-                'loads-with-parent': isinstance(attr, ITDBaseModel) and attr._load_with_parent
+                'field-info': isinstance(attr, FieldInfo)
             }
-            if not _getattr(self, '_loaded') and any(triggers.values()) and self.client.config.auto_load:
+            if (
+                not _getattr(self, '_loaded') and
+                any(triggers.values()) and
+                _getattr(self, 'client').config.auto_load and
+                not (name == 'comments' and not _getattr(self, 'client').config.load_comments_from_post) # да я хотел сделать нормально, поставить проперти на comments и тд, но это херня кака ято крч просто нахардкожу
+            ):
                 l.info('load %s.%s reason=%s', self.__class__.__name__.lower(), name,
                     next((k for k, v in triggers.items() if v))
                 )
@@ -215,46 +220,66 @@ def refresh_wrapper(func):
     return wrapper
 
 
+def _filter_bytes(args: tuple):
+    filtered = []
+    for arg in args:
+        if isinstance(arg, bytes):
+            filtered.append('_bytecode_')
+        else:
+            filtered.append(arg)
+    return filtered
 
 def catch_errors(*exceptions: ITDException):
     def decorator(func):
         @wraps(func)
         def wrapper(client: Client, *args, **kwargs) -> Response | None:
-            l.info('exec %s %s %s', func.__name__, str(args)[:1000], str(kwargs)[:1000])
+            l.info('exec %s %s %s', func.__name__, _filter_bytes(args), kwargs)
             res: Response = func(client, *args, **kwargs)
 
             assert isinstance(res, Response)
             if res.status_code == 204:
                 return res
+
             if client.config.debug_response == DebugResponseMode.BEFORE:
                 l.debug('response (raw): %s', res.text)
 
-            for exception in exceptions:
+            try:
+                json = res.json()
+            except JSONDecodeError:
+                json = {}
+                l.warning('failed to parse json: %s', res.text[:1000])
+
+            for exception in exceptions + DEFAULT_ERRORS:
                 if (
                     getattr(exception, '_reply_comment_user_not_found', False) and res.status_code == 500 and 'Failed query' in res.text or
                     getattr(exception, '_delete_comment_not_found', False) and res.status_code == 500 and res.text == 'Комментарий не найден' or
                     getattr(exception, '_liked_posts_user_not_found', False) and res.status_code == 404 and res.text == 'NOT_FOUND' or
-                    getattr(exception, '_report_target_not_found', False) and res.status_code == 400 and 'не найден' in res.json().get('error', {}).get('message', '') or
-                    getattr(exception, '_subscription_not_found', False) and res.json().get('error') == 'Активная подписка не найдена' or
-                    getattr(exception, '_hashtag_not_found', False) and res.json().get('data', {}).get('hashtag', '') == None or
-                    getattr(exception, '_notification_read_error', False) and res.json().get('success') is False or
-                    isinstance(exception, ValidationError) and res.status_code == 422 and 'found' in res.json() or
+                    isinstance(exception, InvalidAccessToken) and res.text == 'UNAUTHORIZED' or
+                    getattr(exception, '_report_target_not_found', False) and res.status_code == 400 and 'не найден' in json.get('error', {}).get('message', '') or
+                    getattr(exception, '_subscription_not_found', False) and json.get('error') == 'Активная подписка не найдена' or
+                    getattr(exception, '_hashtag_not_found', False) and json.get('data', {}).get('hashtag', '') is None or
+                    getattr(exception, '_notification_read_error', False) and json.get('success') is False or
+                    isinstance(exception, ValidationError) and res.status_code == 422 and 'found' in json or
+                    isinstance(exception, RateLimitExceeded) and json.get('error') == 'Too Many Requests' or
 
                     exception.status_code is not None and res.status_code == exception.status_code or
-                    exception.code is not None and res.json().get('error', {}).get('code') == exception.code or
-                    exception.message is not None and res.json().get('error', {}).get('message') == exception.message
+                    exception.code is not None and json.get('error', {}).get('code') == exception.code or
+                    exception.message is not None and json.get('error', {}).get('message') == exception.message
                 ):
-                    if isinstance(exception, ValidationError) and res.json().get('error', {}).get('code') == exception.code:
-                        exception.text = res.json()['error']['message']
+                    if isinstance(exception, ValidationError) and json.get('error', {}).get('code') == exception.code:
+                        exception.text = json['error']['message']
+                    if isinstance(exception, RateLimitExceeded) and json.get('error', {}).get('code') == exception.code:
+                        exception.retry_after = json['error'].get('retryAfter', 0)
+
                     raise exception
 
             if client.config.debug_response == DebugResponseMode.AFTER:
-                l.debug('response: %s', res.json())
+                l.debug('response: %s', json)
             if client.config.debug_response == DebugResponseMode.KEYS:
-                if 'data' in res.json():
-                    l.debug('response keys: data - %s', list(res.json()['data'].keys()))
+                if 'data' in json:
+                    l.debug('response keys: data - %s', list(json['data'].keys()))
                 else:
-                    l.debug('response keys: %s', list(res.json().keys()))
+                    l.debug('response keys: %s', list(json.keys()))
             res.raise_for_status()
             return res
 
