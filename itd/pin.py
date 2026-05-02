@@ -1,7 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from itd.base import ITDBaseModel
 from itd.api.pins import set_pin, remove_pin
@@ -19,6 +20,8 @@ class Pin(ITDBaseModel):
     slug: str
     name: str
     description: str
+    url: str | None = None
+    granted_at: datetime | None = Field(None, alias='grantedAt')
 
     def __init__(self, pin: dict, user: '_UserBase | None' = None, client: Client | None = None):
         super().__init__(client)
