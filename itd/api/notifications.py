@@ -15,8 +15,9 @@ def get_notifications(client: Client, limit: int = 20, offset: int = 0):
     return {'limit': limit, 'offset': offset}
 
 
-@endpoint('post', 'notifications/{id}/read', NotFoundError('Notification', json_check=lambda json: json.get('success') is False))
-def mark_as_read(client: Client, id: UUID): ...
+@endpoint('post', 'notifications/read-batch', NotFoundError('Notification', json_check=lambda json: json.get('success') is False))
+def mark_as_read(client: Client, id: UUID):
+    return {'ids': [str(id)]}
 
 
 @endpoint('post', 'notifications/read-all')
