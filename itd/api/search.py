@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from itd.core.request import endpoint
 from itd.enums import AuthLevel
 from itd.exceptions import ValidationError
-from itd.core.request import endpoint
 
 if TYPE_CHECKING:
     from itd.core.client import Client
 
 
 @endpoint('get', 'search', ValidationError(), level=AuthLevel.NO)
-def search(client: Client, query: str, user_limit: int = 5, hashtag_limit: int = 5):
-    return {'userLimit': user_limit, 'hashtagLimit': hashtag_limit, 'q': query}
+def search(client: Client, query: str, users_limit: int = 10, hashtags_limit: int = 10):
+    return {'userLimit': users_limit, 'hashtagLimit': hashtags_limit, 'q': query}
