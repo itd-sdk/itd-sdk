@@ -214,8 +214,8 @@ class Client:
         change_password(self, old, new)
 
 
-def init_client(name: str | None = None, config: Config = Config()) -> Client:
+def init_client(name: str | None = None, config: Config | None = None, auth: AuthMethod | None = None) -> Client:
     if name == 'anon':
         clear_anon_profile()
         register(clear_anon_profile)
-    return Client(name or 'default', config=config)
+    return Client(name or 'default', config=config, auth=auth)

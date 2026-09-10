@@ -51,8 +51,9 @@ from itd.models.notification import Notification, Notifications, Ntf, Ntfs
 from itd.models.poll import NewPoll
 from itd.models.portal import Portal
 from itd.models.post import HashtagPosts, LikedPosts, Post, Posts, UserPosts
+from itd.models.search import Search
 from itd.models.session import Sessions
-from itd.models.user import Me, User, Users, get_follow_status
+from itd.models.user import Me, User, Users, WhoToFollow, get_follow_status
 from itd.models.version import Apps, Changelog
 
 
@@ -94,6 +95,8 @@ __all__ = [
     'Me',
     'Users',
     'Portal',
+    'WhoToFollow',
+    'Search',
     'get_follow_status',
     'set_limiter_config',
     'LimiterConfig',
