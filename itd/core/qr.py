@@ -1,6 +1,6 @@
 from json import loads
 from time import sleep
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterator
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -34,79 +34,108 @@ class ITDQRCode(BaseModel):
     expires_in: int = Field(90, alias='expiresIn')
 
 
+class QRLogin:
+    def __init__(self, client: 'Client'):
+        self.client = client
+        self.stream = None
+        self.qr = None
+        self.refresh()
+
+    def refresh(self) -> ITDQRCode:
+        self.close()
+        self.qr = ITDQRCode.model_validate(qr_start(self.client).json())
+        l.debug('qr code: id=%s claim_token=%s', self.qr.id, self.qr.claim_token)
+        return self.qr
+
+    def events(self) -> Iterator[str]:
+        assert self.qr
+        self.stream = qr_stream(self.client, qr_id=self.qr.id, claim_token=self.qr.claim_token)
+        l.debug('start stream')
+        try:
+            for event in SSEClient(self.stream).events():
+                status = loads(event.data)['status']
+                l.debug('qr code status: %s', status)
+                yield status
+                if status in ('approved', 'rejected'):
+                    return
+
+        finally:
+            self.close()
+            l.debug('stop stream')
+
+    def claim(self):
+        assert self.qr
+        res = qr_claim(self.client, qr_id=self.qr.id, claim_token=self.qr.claim_token)
+        self.client._profile.set_refresh(res.cookies['refresh_token'], set_expire=True)
+        self.client._profile.set_access(res.json()['accessToken'])
+
+    def close(self):
+        if self.stream:
+            self.stream.close()
+            self.stream = None
+
+    def __enter__(self) -> 'QRLogin':
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
+
 def auth_qr(client: 'Client'):
     if not QR_AVAILABLE:
         l.error('qrcode library not installed; install via `uv add itd-sdk[qrcode]`')
         return False
-
-    itd_qr = None
-
-    def generate_qr():
-        nonlocal itd_qr
-        if status:
-            status.update('Generating QR')
-        itd_qr = ITDQRCode.model_validate(qr_start(client).json())
-        l.debug('qr code: id=%s claim_token=%s', itd_qr.id, itd_qr.claim_token)
-        qr = QRCode(border=0)
-        qr.add_data(itd_qr.payload)
-        iprint(l, 'scan QR code with mobile app:')
-        qr.print_ascii(invert=False)
-        if status:
-            status.update('Waiting for scan')
 
     if RICH_AVAILABLE:
         status = Status('Waiting for scan')
         status.start()
     else:
         status = None
-    stream = None
 
-    try:
-        for _ in range(5):
-            generate_qr()
-            assert itd_qr
+    with QRLogin(client) as qr:
+        try:
+            for _ in range(5):
+                qr.refresh()
+                if status:
+                    status.update('Generating QR')
+                assert qr.qr
+                ascii_qr = QRCode(border=2)
+                ascii_qr.add_data(qr.qr.payload)
+                iprint(l, 'scan QR code with mobile app:')
+                ascii_qr.print_ascii(invert=True)
+                if status:
+                    status.update('Waiting for scan')
 
-            stream = qr_stream(client, qr_id=itd_qr.id, claim_token=itd_qr.claim_token)
-            l.info('start stream')
-            for event in SSEClient(stream).events():
-                res = loads(event.data)
-                l.debug('qr code status: %s', res['status'])
+                for event in qr.events():
+                    if event == 'approved':
+                        iprint(l, 'qr code approved')
+                        qr.claim()
+                        return True
 
-                if res['status'] == 'approved':
-                    iprint(l, 'qr code approved')
-                    claim_res = qr_claim(client, qr_id=itd_qr.id, claim_token=itd_qr.claim_token)
-                    client._profile.set_refresh(claim_res.cookies['refresh_token'])
-                    client._profile.set_access(claim_res.json()['accessToken'])
-                    stream.close()
-                    return True
+                    elif event == 'rejected':
+                        l.error('qr code rejected')
+                        break
 
-                elif res['status'] == 'rejected':
-                    l.error('qr code rejected')
-                    generate_qr()
-                    stream.close()
-                    break
+                    elif event == 'scanned':
+                        iprint(l, 'qr code scanned')
+                        if status:
+                            status.update('Waiting for accept')
 
-                elif res['status'] == 'scanned':
-                    iprint(l, 'qr code scanned')
-                    if status:
-                        status.update('Waiting for accept')
+                    elif event == 'pending':
+                        iprint(l, 'qr code pending')
 
-                elif res['status'] == 'pending':
-                    iprint(l, 'qr code pending')
+                    # elif res['status'] == 'captcha_required':
+                    #     iprint(l, 'captcha required')
+                    #     if status:
+                    #         status.update('Solving captcha')
+                    #     turnstile = get_turnstile(client)
 
-                # elif res['status'] == 'captcha_required':
-                #     iprint(l, 'captcha required')
-                #     if status:
-                #         status.update('Solving captcha')
-                #     turnstile = get_turnstile(client)
+                sleep(5)
 
-            l.info('stop stream')
-            sleep(5)
-
-        l.error('all retries to auth qr exceeded')
-        return False
-    finally:
-        if status:
-            status.stop()
-        if stream:
-            stream.close()
+            l.error('all retries to auth qr exceeded')
+            return False
+        finally:
+            if status:
+                status.stop()
+            if qr.stream:
+                qr.stream.close()

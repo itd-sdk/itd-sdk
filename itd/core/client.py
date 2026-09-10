@@ -12,7 +12,7 @@ from requests import Response, Session
 from requests.adapters import HTTPAdapter
 
 from itd.api.auth import change_password, logout, refresh_token, sign_in
-from itd.core.auth import interactive_auth
+from itd.core.auth import AuthMethod, apply_auth, env_auth, interactive_auth
 from itd.core.captcha import get_turnstile
 from itd.core.config import Config
 from itd.core.default import maybe_get_default_client, set_default_client
@@ -33,7 +33,7 @@ l = get_logger('client')
 
 
 class Client:
-    def __init__(self, name: str, config: Config | None = None):
+    def __init__(self, name: str, config: Config | None = None, auth: AuthMethod | None = None):
         l.info('init client %s', name)
         self.config = config or Config()
 
@@ -49,10 +49,15 @@ class Client:
         if maybe_get_default_client() is None or self.config.is_default:
             set_default_client(self)
 
-        interactive_auth(self)
+        self._credtest = True
+        if auth is not None:
+            apply_auth(self, auth)
+        elif not env_auth(self):
+            interactive_auth(self)
+        self._credtest = False
+
         self._set_from_profile()
         self._profile.flush()
-        self._credtest = False  # skip all checks and refreshing to test credentials
 
         self.dwell_tracker = DwellTracker(self)
         self.dwell_tracker.start()

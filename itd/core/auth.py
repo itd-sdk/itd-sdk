@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+from dataclasses import dataclass
 from os import getenv
 from typing import TYPE_CHECKING
 
@@ -28,17 +30,25 @@ if RICH_AVAILABLE:
 l = get_logger('auth')
 
 
-def _auth_login(client: 'Client', email: str, password: str):
-    client._profile.email = email
-    client._profile.password = password
-    client._profile.creds_valid = True
-    client._set_from_profile()
+@contextmanager
+def _status(text: str):
+    if not RICH_AVAILABLE:
+        iprint(l, text)
+        yield None
+        return
+    with Status(text) as status:
+        yield status
 
-    def _sign_in(turnstile):
+
+def _auth_login(client: 'Client', email: str, password: str) -> bool:
+    with _status('Solving captcha..') as status:
+        turnstile = get_turnstile(client, status=status)
+        if status:
+            status.update('Verifying..')
         try:
-            res = sign_in(client, client._profile.email, client._profile.password, 'turnstileToken', turnstile)
+            apply_auth(client, CredentialsAuth(email, password, turnstile))
         except CaptchaFailedError:
-            l.error('captcha verify failed. Please fill issue at https://github.com/itd-sdk/itd-sdk/issues/new')
+            l.error('captcha verify failed; please fill issue at https://github.com/itd-sdk/itd-sdk/issues/new')
         except InvalidCredentialsError:
             l.error('invalid email or password')
         except EmailDomainNotAllowedError:
@@ -46,34 +56,15 @@ def _auth_login(client: 'Client', email: str, password: str):
         except InvalidEmailError:
             l.error('invalid email format')
         else:
-            client._profile.set_refresh(res.cookies['refresh_token'], set_expire=True)
-            client._profile.set_access(res.json()['accessToken'])
-            client._profile.creds_valid = True
-            return True
-
-    if RICH_AVAILABLE:
-        with Status('Solving captcha..') as status:
-            turnstile = get_turnstile(client, status=status)
-            status.update('Verifying..')
-            if _sign_in(turnstile):
-                iprint(l, 'accepted')
-                return True
-    else:
-        iprint(l, 'solving captcha..')
-        if _sign_in(get_turnstile(client)):
             iprint(l, 'accepted')
             return True
+    return False
 
-    client._profile.creds_valid = False
 
-
-def _auth_refresh(client: 'Client', refresh: str):
-    client._profile.set_refresh(refresh, set_expire=True)
-    client._set_from_profile()
-
-    def _verify():
+def _auth_refresh(client: 'Client', refresh: str) -> bool:
+    with _status('Verifying..'):
         try:
-            client.refresh_auth()
+            apply_auth(client, RefreshAuth(refresh))
         except SessionExpiredError:
             l.error('refresh token expired')
         except SessionNotFoundError:
@@ -81,28 +72,15 @@ def _auth_refresh(client: 'Client', refresh: str):
         except SessionRevokedError:
             l.error('refresh token revoked')
         else:
-            return True
-
-    if RICH_AVAILABLE:
-        with Status('Verifying..'):
-            if _verify():
-                iprint(l, 'accepted')
-                return True
-    else:
-        if _verify():
             iprint(l, 'accepted')
             return True
+    return False
 
-    client._profile.refresh_valid = False
 
-
-def _auth_access(client: 'Client', access: str):
-    client._profile.set_access(access)
-    client._set_from_profile()
-
-    def _verify():
+def _auth_access(client: 'Client', access: str) -> bool:
+    with _status('Verifying..'):
         try:
-            client.user.refresh()
+            apply_auth(client, AccessAuth(access))
         except AccessTokenExpiredError:
             l.error('access token expired')
         except InvalidAccessTokenError:
@@ -110,19 +88,94 @@ def _auth_access(client: 'Client', access: str):
         except JWTAlgorithmUnsupportedError:
             l.error('jwt algorithm unsupported')
         else:
-            return True
-
-    if RICH_AVAILABLE:
-        with Status('Verifying..'):
-            if _verify():
-                iprint(l, 'accepted')
-                return True
-    else:
-        if _verify():
             iprint(l, 'accepted')
             return True
+    return False
 
-    client._profile.access_valid = False
+
+@dataclass
+class CredentialsAuth:
+    email: str
+    password: str
+    turnstile: str | None = None
+
+
+@dataclass
+class RefreshAuth:
+    refresh: str
+    access: str | None = None
+
+
+@dataclass
+class AccessAuth:
+    access: str
+
+
+AuthMethod = CredentialsAuth | RefreshAuth | AccessAuth
+
+
+def apply_auth(client: 'Client', auth: AuthMethod) -> None:
+    match auth:
+        case CredentialsAuth():
+            client._profile.email = auth.email
+            client._profile.password = auth.password
+            client._profile.creds_valid = True
+            client._set_from_profile()
+            try:
+                res = sign_in(client, auth.email, auth.password, 'turnstileToken', auth.turnstile or get_turnstile(client)[1])
+            except Exception:
+                client._profile.email = None
+                client._profile.password = None
+                client._profile.creds_valid = False
+                client._set_from_profile()
+                raise
+            client._profile.set_refresh(res.cookies['refresh_token'], set_expire=True)
+            client._profile.set_access(res.json()['accessToken'])
+
+        case RefreshAuth():
+            client._profile.set_refresh(auth.refresh, set_expire=True)
+            if auth.access:
+                client._profile.set_access(auth.access)
+            client._set_from_profile()
+            try:
+                client.refresh_auth()
+            except Exception:
+                client._profile.refresh_valid = False
+                client._set_from_profile()
+                raise
+
+        case AccessAuth():
+            client._profile.set_access(auth.access)
+            client._set_from_profile()
+            try:
+                client.user.refresh()
+            except Exception:
+                client._profile.access_valid = False
+                client._set_from_profile()
+                raise
+
+    client._profile.flush()
+
+
+def env_auth(client: 'Client') -> bool:
+    """Auth from ITD_* environment variables. Returns False if none set."""
+    method = getenv('ITD_AUTH_METHOD')
+    if not method:
+        return False
+
+    match method:
+        case 'login':
+            auth = CredentialsAuth(getenv('ITD_LOGIN', ''), getenv('ITD_PASSWORD', ''))
+        case 'refresh':
+            auth = RefreshAuth(getenv('ITD_REFRESH', ''))
+        case 'access':
+            auth = AccessAuth(getenv('ITD_ACCESS', ''))
+        case _:
+            raise ValueError(f'unknown env auth method {method}')
+
+    apply_auth(client, auth)
+    l.info('authorized env method=%s', method)
+    return True
 
 
 def interactive_auth(client: 'Client') -> bool:
@@ -140,24 +193,6 @@ def interactive_auth(client: 'Client') -> bool:
 
         return True
     client._credtest = True
-
-    if getenv('ITD_AUTH_METHOD'):
-        match getenv('ITD_AUTH_METHOD'):
-            case 'login':
-                if _auth_login(client, getenv('ITD_LOGIN', ''), getenv('ITD_PASSWORD', '')):
-                    return True
-            case 'refresh':
-                if _auth_refresh(client, getenv('ITD_REFRESH', '')):
-                    return True
-            case 'access':
-                if _auth_access(client, getenv('ITD_ACCESS', '')):
-                    return True
-            case _:
-                l.error('unknown option')
-                quit()
-
-        l.error('auth failed')
-        quit()
 
     if not client._profile.refresh_valid and client._profile.refresh:
         l.warning('session file refresh token is not valid')
