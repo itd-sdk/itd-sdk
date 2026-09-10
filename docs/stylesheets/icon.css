@@ -1,0 +1,21 @@
+.md-social {
+    gap: 0.8rem;
+}
+
+.md-social__link {
+    width: 22px;
+    height: 22px;
+    align-items: center;
+    display: flex;
+    justify-content: center;
+}
+
+.md-social__link svg {
+    min-width: 22px;
+    min-height: 22px;
+}
+
+.md-social__link:first-child svg {
+    min-width: 30px;
+    min-height: 22px;
+}

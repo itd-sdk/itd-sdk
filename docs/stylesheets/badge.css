@@ -1,0 +1,44 @@
+.mdx-badge {
+  font-size: 0.85em;
+  margin-right: 5px;
+}
+
+.mdx-badge__icon {
+  padding: 4px;
+  background: #448aff;
+  border-start-start-radius: 2px;
+  border-end-start-radius: 2px;
+  color: #fff;
+}
+.mdx-badge__icon:last-child {
+  border-radius: 2px;
+}
+
+.mdx-badge__text {
+  padding: 4px 6px;
+  border-start-end-radius: 2px;
+  border-end-end-radius: 2px;
+  box-shadow: 0 0 0 1px inset #448aff;
+  color: #d2d2d2;
+}
+
+.mdx-badge_required .mdx-badge__icon {
+  background: #ff1744;
+}
+.mdx-badge_required .mdx-badge__text {
+  box-shadow: 0 0 0 1px inset #ff1744;
+}
+
+.mdx-badge_alias .mdx-badge__icon {
+  background: #ff6e42;
+}
+.mdx-badge_alias .mdx-badge__text {
+  box-shadow: 0 0 0 1px inset #ff6e42;
+}
+
+.mdx-badge_one_required .mdx-badge__icon {
+  background: #ff5252;
+}
+.mdx-badge_one_required .mdx-badge__text {
+  box-shadow: 0 0 0 1px inset #ff5252;
+}

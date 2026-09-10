@@ -1,0 +1,3 @@
+# Спан
+
+::: itd.models.span

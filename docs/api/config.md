@@ -1,0 +1,3 @@
+# Конфиг
+
+::: itd.core.config

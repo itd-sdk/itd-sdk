@@ -1,0 +1,3 @@
+# Анонсы
+
+::: itd.models.announcement

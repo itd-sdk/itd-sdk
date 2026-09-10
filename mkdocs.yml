@@ -1,0 +1,137 @@
+site_name: ИТД SDK
+site_url: https://itdsdk.qzz.io/docs/
+repo_url: https://github.com/itd-sdk/itd-sdk
+
+theme:
+    name: material
+    custom_dir: docs/overrides
+    # logo: assets/logo.png
+    favicon: assets/favicon.ico
+    language: ru
+
+    features:
+        - navigation.footer
+        - navigation.instant
+        - content.code.annotate
+        - navigation.expand
+
+    palette:
+        scheme: slate
+        primary: deep orange
+        accent: orange
+
+    font:
+        text: Iosevka Charon
+        code: Cascadia Code
+
+markdown_extensions:
+    - admonition
+    - pymdownx.details
+    - pymdownx.snippets
+    - pymdownx.superfences
+    - pymdownx.tilde
+    - pymdownx.tasklist:
+        custom_checkbox: true
+    - pymdownx.tabbed:
+        alternate_style: true
+    - pymdownx.emoji:
+        emoji_generator: !!python/name:material.extensions.emoji.to_svg
+        emoji_index: !!python/name:material.extensions.emoji.twemoji
+    - toc:
+        toc_depth: 0
+
+extra_css:
+    - stylesheets/badge.css
+    - stylesheets/margin.css
+    - stylesheets/icon.css
+
+nav:
+    - index.md
+    - launch.md
+    - features.md
+    - config.md
+    - limits.md
+    - Reference:
+        - Клиент: ref/client.md
+        - Базовые модели: ref/base.md
+        - Посты: ref/posts.md
+        - Комментарии: ref/comments.md
+        - Пользователи: ref/users.md
+        - Уведомления: ref/notifications.md
+        - Анонсы: ref/announcements.md
+        - Хэштэги: ref/hashtags.md
+        - Файлы и вложения: ref/files.md
+        - Сессии: ref/sessions.md
+        - Портал: ref/portal.md
+        - Кланы: ref/clans.md
+        - Репорты: ref/reports.md
+        - Оф. приложения: ref/apps.md
+        - Ченжлог оф. сайта: ref/changelog.md
+        - ref/enums.md
+    - API:
+        - api/client.md
+        - api/config.md
+        - api/request.md
+        - api/base.md
+        - api/logger.md
+        - api/dwell.md
+        - api/visibility.md
+        - api/timer.md
+        - api/limiter.md
+        - api/post.md
+        - api/comment.md
+        - api/user.md
+        - api/file.md
+        - api/hashtag.md
+        - api/pin.md
+        - api/poll.md
+        - api/clan.md
+        - api/report.md
+        - api/span.md
+        - api/notification.md
+        - api/announcement.md
+        - api/session.md
+        - api/portal.md
+        - api/version.md
+        - api/utils.md
+        - api/enums.md
+        - api/exceptions.md
+    - migration.md
+
+extra:
+    homepage: https://itdsdk.qzz.io
+    social:
+        - icon: itd
+          link: https://xn--d1ah4a.com/@itd_sdk
+        - icon: fontawesome/brands/github
+          link: https://github.com/itd-sdk
+        - icon: fontawesome/brands/telegram
+          link: https://t.me/nwokez
+        - icon: fontawesome/brands/youtube
+          link: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+
+# часть кофига взята из aioitd
+plugins:
+    - search
+    - mkdocstrings:
+        handlers:
+            python:
+                paths: [.]
+                options:
+                    extensions:
+                        - griffe_typingdoc
+                    docstring_style: google
+                    show_source: false
+                    separate_signature: true
+                    filters:
+                        - "!^_"
+                        - "!^l$"
+                    show_symbol_type_heading: true
+                    show_symbol_type_toc: true
+                    show_root_heading: true
+                    show_signature_annotations: true
+                    signature_crossrefs: true
+                    show_labels: false
+                    show_if_no_docstring: true
+                    inherited_members: true
+                    unwrap_annotated: true
