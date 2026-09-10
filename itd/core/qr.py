@@ -83,7 +83,7 @@ class QRLogin:
 
 def auth_qr(client: 'Client'):
     if not QR_AVAILABLE:
-        l.error('qrcode library not installed; install via `uv add itd-sdk[qrcode]`')
+        l.error(r'qrcode library not installed; install via `uv add itd-sdk\[qrcode]`')
         return False
 
     if RICH_AVAILABLE:
