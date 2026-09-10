@@ -20,7 +20,6 @@ from itd.core.dwell import DwellTracker
 from itd.core.logger import get_logger
 from itd.core.profile import Profile, clear_anon_profile
 from itd.core.request import fetch
-from itd.core.utils import get_profile
 from itd.core.visibility import VisibilityTracker
 from itd.enums import AuthLevel
 from itd.exceptions import AccessTokenExpiredError, InsufficientAuthLevelError, SessionExpiredError
@@ -38,7 +37,7 @@ class Client:
         self.config = config or Config()
 
         self.auth_level: AuthLevel = AuthLevel.NO
-        self._profile: Profile = get_profile(name)
+        self._profile: Profile = Profile.get(name)
 
         self._refresh_lock = RLock()  # so background timers and main thread dont refresh token simultaneously # еба он мой стиль коментов спиздил
 
@@ -49,11 +48,12 @@ class Client:
         if maybe_get_default_client() is None or self.config.is_default:
             set_default_client(self)
 
-        self._credtest = True
-        if auth is not None:
-            apply_auth(self, auth)
-        elif not env_auth(self):
-            interactive_auth(self)
+        if name != 'no-auth':
+            self._credtest = True
+            if auth is not None:
+                apply_auth(self, auth)
+            elif not env_auth(self):
+                interactive_auth(self)
         self._credtest = False
 
         self._set_from_profile()
@@ -219,3 +219,7 @@ def init_client(name: str | None = None, config: Config | None = None, auth: Aut
         clear_anon_profile()
         register(clear_anon_profile)
     return Client(name or 'default', config=config, auth=auth)
+
+
+def init_not_authed_client(config: Config | None = None):
+    return Client('no-auth', config=config)

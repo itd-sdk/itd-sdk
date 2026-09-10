@@ -114,7 +114,7 @@ class AccessAuth:
 AuthMethod = CredentialsAuth | RefreshAuth | AccessAuth
 
 
-def apply_auth(client: 'Client', auth: AuthMethod) -> None:
+def apply_auth(client: 'Client', auth: AuthMethod | None) -> None:
     match auth:
         case CredentialsAuth():
             client._profile.email = auth.email
@@ -158,7 +158,6 @@ def apply_auth(client: 'Client', auth: AuthMethod) -> None:
 
 
 def env_auth(client: 'Client') -> bool:
-    """Auth from ITD_* environment variables. Returns False if none set."""
     method = getenv('ITD_AUTH_METHOD')
     if not method:
         return False
@@ -170,6 +169,8 @@ def env_auth(client: 'Client') -> bool:
             auth = RefreshAuth(getenv('ITD_REFRESH', ''))
         case 'access':
             auth = AccessAuth(getenv('ITD_ACCESS', ''))
+        case 'no':
+            auth = None
         case _:
             raise ValueError(f'unknown env auth method {method}')
 
@@ -208,7 +209,8 @@ def interactive_auth(client: 'Client') -> bool:
     iprint(l, '[2] Login via QR code')
     iprint(l, '[3] Manually auth using refresh token')
     iprint(l, '[4] Manually auth using access token')
-    iprint(l, '[5] Quit')
+    iprint(l, '[5] Init client with authorization')
+    iprint(l, '[6] Quit')
 
     while True:
         option = rich_input('option', 'magenta')
@@ -227,7 +229,9 @@ def interactive_auth(client: 'Client') -> bool:
                 l.info('note: authorization will work only for ~15min')
                 if _auth_access(client, rich_input('access token', 'cyan')):
                     return True
-            case '5' | 'q' | 'quit':
+            case '5':
+                return True
+            case '6' | 'q' | 'quit':
                 quit()
             case _:
                 l.error('unknown option')

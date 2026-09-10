@@ -51,10 +51,14 @@ class Profile(BaseModel):
     def flush(self):
         assert self._file
         self.updated_at = datetime.now()
+        if self._file.name == 'no-auth':
+            return
         self._file.write_text(dumps(self.model_dump(mode='json')))
 
     def update(self):
         assert self._file
+        if self._file.name == 'no-auth':
+            return False
         new = self.model_validate(loads(self._file.read_text()))
         if self.updated_at <= new.updated_at:
             for field in Profile.model_fields:
@@ -88,9 +92,10 @@ class Profile(BaseModel):
     @classmethod
     def get(cls, name: str):
         file = user_data_path('itd_sdk', False, ensure_exists=True) / f'{name}.json'
-        instance = cls(_file=file)
+        instance = cls()
+        instance._file = file
         if not file.exists():
-            instance = cls(_file=file)
+            instance.flush()
         else:
             instance.update()
 
