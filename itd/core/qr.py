@@ -70,6 +70,7 @@ class QRLogin:
         res = qr_claim(self.client, qr_id=self.qr.id, claim_token=self.qr.claim_token)
         self.client._profile.set_refresh(res.cookies['refresh_token'], set_expire=True)
         self.client._profile.set_access(res.json()['accessToken'])
+        self.client._set_from_profile()
 
     def close(self):
         if self.stream:
