@@ -51,7 +51,7 @@ class AuthLevel(Enum):
     NO = 'no'
     ACCESS = 'access'
     REFRESH = 'refresh'
-    LOGIN = 'login'
+    LOGIN = 'login'  # todo rename to creds
 
     def __gt__(self, other):
         return _AUTH_LEVEL_HIERARCHY.index(self) > _AUTH_LEVEL_HIERARCHY.index(other)

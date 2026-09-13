@@ -60,11 +60,9 @@ class Profile(BaseModel):
         if self._file.name == 'no-auth':
             return False
         new = self.model_validate(loads(self._file.read_text()))
-        if self.updated_at <= new.updated_at:
-            for field in Profile.model_fields:
-                setattr(self, field, getattr(new, field))
-            return True
-        return False
+        for field in Profile.model_fields:
+            setattr(self, field, getattr(new, field))
+        return True
 
     @property
     def is_refresh_expired(self) -> bool:

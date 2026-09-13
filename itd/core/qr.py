@@ -71,6 +71,7 @@ class QRLogin:
         self.client._profile.set_refresh(res.cookies['refresh_token'], set_expire=True)
         self.client._profile.set_access(res.json()['accessToken'])
         self.client._set_from_profile()
+        self.client._profile.flush()
 
     def close(self):
         if self.stream:

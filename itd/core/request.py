@@ -241,6 +241,7 @@ def api_wrapper(*exceptions: ITDException):
                     # token is checked before the request, but server still can reject it (clock skew, revoked session) - refresh and repeat the request once, before callbacks
                     if isinstance(exception, (AccessTokenExpiredError, InvalidAccessTokenError)) and not access_reauthed and not client._credtest:
                         client._profile.access_valid = False
+                        client._profile.flush()
                         if name != 'refresh_token':
                             access_reauthed = True
                             l.warning('%s on %s: refresh access_token and retry', exception.__class__.__name__, name)
@@ -252,9 +253,10 @@ def api_wrapper(*exceptions: ITDException):
                         and not refresh_reauthed
                         and not client._credtest
                     ):
-                        refresh_reauthed = True
+                        client._profile.refresh_valid = False
+                        client._profile.flush()
                         if name != 'sign_in':
-                            client._profile.refresh_valid = False
+                            refresh_reauthed = True
                             l.warning('%s on %s: refresh refresh_token and retry', exception.__class__.__name__, name)
                             client.login()
                             return exec()
