@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from itd.api.auth import sign_in
 from itd.core.captcha import get_turnstile
 from itd.core.logger import RICH_AVAILABLE, get_logger, iprint, rich_input
-from itd.core.qr import auth_qr
+from itd.core.qr import interactive_auth_qr
 from itd.core.utils import shorten_token
 from itd.exceptions import (
     AccessTokenExpiredError,
@@ -220,7 +220,7 @@ def interactive_auth(client: 'Client') -> bool:
                 if _auth_login(client, rich_input('email', 'green'), rich_input('password', 'green', password=True)):
                     return True
             case '2':
-                if auth_qr(client):
+                if interactive_auth_qr(client):
                     return True
             case '3':
                 if _auth_refresh(client, rich_input('refresh token', 'cyan', password=True)):

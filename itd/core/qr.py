@@ -57,7 +57,9 @@ class QRLogin:
                 l.debug('qr code status: %s', status)
                 yield status
                 if status in ('approved', 'rejected'):
-                    return
+                    break
+            else:
+                yield 'expired'
 
         finally:
             self.close()
@@ -81,7 +83,7 @@ class QRLogin:
         self.close()
 
 
-def auth_qr(client: 'Client'):
+def interactive_auth_qr(client: 'Client'):
     if not QR_AVAILABLE:
         l.error(r'qrcode library not installed; install via `uv add itd-sdk\[qrcode]`')
         return False
