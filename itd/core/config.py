@@ -114,7 +114,8 @@ class Config:
     on_exceptions: dict[type[Exception], Callable[[Exception], None]] = field(default_factory=dict)
     batch_sizes: BatchSizes = field(default_factory=BatchSizes)
     refresh_token_cookie_name: str = 'refresh_token'
-    token_expiry_margin: float = 60  # how many seconds before expiration access token is considered expired (margin for network and clock skew)
+
+    interactive_auth: bool | None = None
 
     def __post_init__(self):
         match self.user_agent:
@@ -162,3 +163,8 @@ class Config:
                 self._retry_exceptions = ()
         else:
             self._retry_exceptions = self.retry_exceptions
+
+        if self.interactive_auth is None:
+            self._interactive_auth = self.client_type != 'client'
+        else:
+            self._interactive_auth = self.interactive_auth

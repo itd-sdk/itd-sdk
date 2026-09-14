@@ -53,7 +53,7 @@ class Client:
             self._credtest = True
             if auth is not None:
                 apply_auth(self, auth)
-            elif not env_auth(self):
+            elif not env_auth(self) and self.config._interactive_auth:
                 interactive_auth(self)
             self._profile.flush()
         self._credtest = False
