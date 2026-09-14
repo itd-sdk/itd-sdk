@@ -11,6 +11,7 @@ from itd.core.logger import RICH_AVAILABLE, get_logger, iprint
 
 if TYPE_CHECKING:
     from itd.core.client import Client
+    from itd.core.config import Config
 
 try:
     from qrcode import QRCode
@@ -35,10 +36,14 @@ class ITDQRCode(BaseModel):
 
 
 class QRLogin:
-    def __init__(self, client: 'Client'):
-        self.client = client
+    def __init__(self):
+        from itd import init_not_authed_client
+
+        self.client = init_not_authed_client()
         self.stream = None
         self.qr = None
+        self.auth = None
+        self.status = 'pending'
         self.refresh()
 
     def refresh(self) -> ITDQRCode:
@@ -53,12 +58,19 @@ class QRLogin:
         l.debug('start stream')
         try:
             for event in SSEClient(self.stream).events():
-                status = loads(event.data)['status']
-                l.debug('qr code status: %s', status)
-                yield status
-                if status in ('approved', 'rejected'):
+                self.status = loads(event.data)['status']
+                l.debug('qr code status: %s', self.status)
+                yield self.status
+                if self.status in ('approved', 'rejected'):
                     break
-            else:
+
+            if self.status == 'approved':
+                self.claim()
+                self.status = 'authorized'
+                yield 'authorized'
+            elif self.status != 'rejected':
+                l.debug('expire qr')
+                self.status = 'expired'
                 yield 'expired'
 
         finally:
@@ -66,12 +78,21 @@ class QRLogin:
             l.debug('stop stream')
 
     def claim(self):
+        from itd.core.auth import RefreshAuth
+
         assert self.qr
         res = qr_claim(self.client, qr_id=self.qr.id, claim_token=self.qr.claim_token)
-        self.client._profile.set_refresh(res.cookies['refresh_token'], set_expire=True)
-        self.client._profile.set_access(res.json()['accessToken'])
-        self.client._set_from_profile()
-        self.client._profile.flush()
+        self.auth = RefreshAuth(res.cookies['refresh_token'], res.json()['accessToken'])
+
+    def get_client(self, name: str | None = None, config: 'Config | None' = None):
+        from itd import ITDConfig, init_client
+
+        if config is None:
+            config = ITDConfig()
+        config.is_default = True
+
+        assert self.auth
+        return init_client(name, config, auth=self.auth)
 
     def close(self):
         if self.stream:
@@ -96,7 +117,7 @@ def interactive_auth_qr(client: 'Client'):
     else:
         status = None
 
-    with QRLogin(client) as qr:
+    with QRLogin() as qr:
         try:
             for _ in range(5):
                 qr.refresh()
@@ -113,7 +134,10 @@ def interactive_auth_qr(client: 'Client'):
                 for event in qr.events():
                     if event == 'approved':
                         iprint(l, 'qr code approved')
-                        qr.claim()
+                        assert qr.auth
+                        assert qr.auth.access
+                        client._profile.set_access(qr.auth.access)
+                        client._profile.set_refresh(qr.auth.refresh, set_expire=True)
                         return True
 
                     elif event == 'rejected':

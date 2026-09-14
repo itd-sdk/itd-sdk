@@ -36,26 +36,26 @@ class Client:
         l.info('init client %s', name)
         self.config = config or Config()
 
+        self.session = Session()
+        adapter = HTTPAdapter(pool_connections=1, pool_maxsize=10, pool_block=False)  # idk what is this, (claude added) just for better stability
+        self.session.mount('https://', adapter)
+
         self.auth_level: AuthLevel = AuthLevel.NO
         self._profile: Profile = Profile.get(name)
         self._set_from_profile()
 
         self._refresh_lock = RLock()  # so background timers and main thread dont refresh token simultaneously # еба он мой стиль коментов спиздил
 
-        self.session = Session()
-        adapter = HTTPAdapter(pool_connections=1, pool_maxsize=10, pool_block=False)  # idk what is this, (claude added) just for better stability
-        self.session.mount('https://', adapter)
-
         if maybe_get_default_client() is None or self.config.is_default:
             set_default_client(self)
 
+        self._credtest = True
+        if auth is not None:
+            apply_auth(self, auth)
         if name != 'no-auth' and self.auth_level == AuthLevel.NO:
-            self._credtest = True
-            if auth is not None:
-                apply_auth(self, auth)
-            elif not env_auth(self) and self.config._interactive_auth:
+            if not env_auth(self) and self.config._interactive_auth:
                 interactive_auth(self)
-            self._profile.flush()
+        self._profile.flush()
         self._credtest = False
 
         self.dwell_tracker = DwellTracker(self)

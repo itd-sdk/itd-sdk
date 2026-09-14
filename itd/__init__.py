@@ -37,7 +37,7 @@ from time import sleep
 __version__ = version('itd-sdk')
 
 from itd.core.client import Client as ITDClient
-from itd.core.client import init_client
+from itd.core.client import init_client, init_not_authed_client
 from itd.core.config import Config as ITDConfig
 from itd.core.default import LimiterConfig, limiters
 from itd.core.default import set_config as set_limiter_config
@@ -72,6 +72,7 @@ __all__ = [
     'ITDClient',
     'ITDConfig',
     'init_client',
+    'init_not_authed_client',
     'Comment',
     'Clan',
     'TopClans',
