@@ -33,6 +33,7 @@ from itd.core.default import get_default_client
 from itd.core.utils import parse_datetime, to_uuid
 from itd.enums import AccessType, LastSeenUnit, LoadStatus, ReportReason, ReportTargetType, Role, Unset
 from itd.exceptions import AccountDeletedError, NotFoundError, PinNotOwnedError
+from itd.models.file import File
 from itd.models.pin import Pin
 from itd.models.poll import NewPoll
 from itd.models.report import Report
@@ -436,7 +437,18 @@ class Me(_UserBase):
     ):
         self.privacy.update(is_private, wall_access, likes_visibility, show_last_seen)
 
-    def update(self, bio: str | None = None, display_name: str | None = None, username: str | None = None, banner_id: UUID | str | Unset | None = None):
+    def update(
+        self,
+        bio: str | None = None,
+        display_name: str | None = None,
+        username: str | None = None,
+        banner_id: UUID | str | Unset | None = None,  # deprecated
+        banner: UUID | str | Unset | File | None = None
+    ):
+        if isinstance(banner, File):
+            banner_id = banner.id
+        elif banner:
+            banner_id = banner
         if isinstance(banner_id, str):
             banner_id = to_uuid(banner_id)
         update_profile(self.client, bio, display_name, username, banner_id)
