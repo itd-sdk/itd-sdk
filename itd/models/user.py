@@ -180,11 +180,13 @@ class _UserBase(ITDBaseModel):
     id: UUID
     username: str
     display_name: str = Field(alias='displayName')
-    avatar: str = ''  # no avatar in reply_to
+    avatar: str = ''  # no avatar in reply_to # ! can be url
+    clan_avatar: str = Field('', alias='clanAvatar')  # always emoji
     verified: bool = False
     pin: Pin | None = None
     banner: str | None = None
     bio: str | None = None
+    nickname: str | None = Field(None, alias='activeNickname')
 
     def __init__(self, username_or_id: str | UUID, client: Client | None = None) -> None:
         self._identifier = username_or_id
