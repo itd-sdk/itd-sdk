@@ -175,7 +175,8 @@ class Comment(ITDBaseModel):
         comment = cls.from_dict(
             add_comment(client or instance.client, post.id, content, format_attachments(attachments)).json(), post, client=client or instance.client
         )
-        post.comments_count += 1
+        if post.is_loaded('comments_count'):
+            post.comments_count += 1
         post.comments.insert(0, comment)
         return comment
 
