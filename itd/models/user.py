@@ -152,6 +152,15 @@ class Subscription(ITDBaseModel):
         return str(self.active)
 
 
+class Nickname(BaseModel):
+    id: str
+    label: str
+    style: str = Field(alias='styleKey')
+    event_id: str = Field(alias='eventId')
+    expires_at: datetime = Field(alias='expiresAt')
+    state_version: int = Field(0, alias='stateVersion')
+
+
 class LastSeen(BaseModel):
     unit: LastSeenUnit
     value: int | None = None
@@ -186,7 +195,7 @@ class _UserBase(ITDBaseModel):
     pin: Pin | None = None
     banner: str | None = None
     bio: str | None = None
-    nickname: str | None = Field(None, alias='activeNickname')
+    nickname: Nickname | None = Field(None, alias='activeNickname')
 
     def __init__(self, username_or_id: str | UUID, client: Client | None = None) -> None:
         self._identifier = username_or_id
@@ -221,6 +230,10 @@ class _UserBase(ITDBaseModel):
     @property
     def link(self) -> str:
         return self.url
+
+    @property
+    def has_picture_avatar(self) -> bool:
+        return self.avatar.startswith('http')
 
     def __hash__(self):
         return int(self.id)
