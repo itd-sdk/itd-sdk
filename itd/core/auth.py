@@ -209,7 +209,7 @@ def interactive_auth(client: 'Client') -> bool:
     iprint(l, '[2] Login via QR code')
     iprint(l, '[3] Manually auth using refresh token')
     iprint(l, '[4] Manually auth using access token')
-    iprint(l, '[5] Init client with authorization')
+    iprint(l, '[5] Init client without authorization')
     iprint(l, '[6] Quit')
 
     while True:

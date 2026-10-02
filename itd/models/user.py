@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from datetime import datetime
 from functools import cached_property
-from typing import TYPE_CHECKING, Annotated, overload
+from typing import TYPE_CHECKING, Annotated, Literal, overload
 from uuid import UUID
 
 from pydantic import BaseModel, BeforeValidator, Field
 
 from itd.api.pins import get_pins, remove_pin
+from itd.api.portal import get_event_balance, get_event_profile
 from itd.api.search import search
 from itd.api.subscription import get_payment_methods, get_subscription, pay_subscription, toggle_subscription_auto_renewal
 from itd.api.users import (
@@ -160,6 +161,72 @@ class Nickname(BaseModel):
     expires_at: datetime = Field(alias='expiresAt')
     state_version: int = Field(0, alias='stateVersion')
 
+    def __str__(self):
+        return self.label
+
+
+class EventProfileWindow(ITDBaseModel):
+    broken: bool = False
+    asset: str | None = None
+    broken_at: datetime | None = Field(None, alias='brokenAt')
+
+
+class EventProfileCurtains(ITDBaseModel):
+    amount: int = Field(alias='fund')
+    goal: int = 100
+    available: bool = Field(False, alias='hasCuratins')
+    closed: bool = False
+
+
+class EventAnchor(BaseModel):
+    type: Literal['banner', 'profile_header', 'post'] = Field(alias='kind')
+    id: UUID | None = None
+
+
+class EventSticket(ITDBaseModel):
+    id: UUID
+    type: Literal['sticker'] = Field(alias='kind')
+    asset: str
+    x: float
+    y: float
+    z: float
+    size: float
+    angle: float
+    # wear: Literal[0]
+    anchor: EventAnchor
+    created_at: datetime = Field(alias='createdAt')
+    author: UUID = Field(alias='createdBy')
+
+
+class EventBalloon(BaseModel):
+    id: UUID
+    x: float
+    y: float
+    angle: float
+    created_at: datetime = Field(alias='thrownAt')
+    author: UUID = Field(alias='thrownBy')
+    expires_at: datetime = Field(alias='expiresAt')
+    anchor: EventAnchor
+
+
+class EventProfile(ITDBaseModel):
+    id: UUID = Field(alias='profileId')
+    revision: int = Field(alias='rev')
+    # banner: EventProfileBanner # фронт не сомтрит на это + у всех одинаково это поле
+    window: EventProfileWindow
+    curtains: EventProfileCurtains
+    aura: int | None = None
+    nickname: str | None = None
+    stickers: list[EventSticket] = Field(default_factory=list, alias='placements')
+    balloons: list[EventBalloon] = Field(default_factory=list)
+
+    def __init__(self, id: str | UUID, *, client: Client | None = None):
+        super().__init__(client=client)
+        self.id = to_uuid(id)
+
+    def _refresh(self, client: Client):
+        return get_event_profile(client, self.id).json()
+
 
 class LastSeen(BaseModel):
     unit: LastSeenUnit
@@ -222,6 +289,10 @@ class _UserBase(ITDBaseModel):
         from itd.models.post import LikedPosts
 
         return LikedPosts(self, client=self.client)
+
+    @cached_property
+    def event_profile(self) -> EventProfile:
+        return EventProfile(self.id, client=self.client)
 
     @property
     def url(self) -> str:
@@ -530,6 +601,10 @@ class Me(_UserBase):
             exc.restore_deadline = parse_datetime(user['restoreDeadline']) if 'restoreDeadline' in user else None
             raise exc
         return user
+
+    @cached_property
+    def event_balance(self) -> int:
+        return get_event_balance(self.client).json()['balance']
 
 
 class Followers(ITDList[User]):
