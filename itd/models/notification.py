@@ -140,7 +140,6 @@ class Notification(ITDBaseModel):
 
     target_type: NotificationTargetType | None = Field(None, alias='targetType')  # none if follow, NotificationTargetType.POST otherwise
     target_id: UUID | None = Field(None, alias='targetId')  # none - follows
-
     subject_type: NotificationSubjectType | None = Field(
         None, alias='subjectType'
     )  # NotificationSubjectType.COMMENT if comment_like or reply follows, other - NotificationTragetType.POST, none otherwise
@@ -149,12 +148,13 @@ class Notification(ITDBaseModel):
     preview: str | None = (
         None  # follow - none, comment/reply - content, repost - original post content, like - post/comment content, wall_post - wall post content
     )
+    title: str | None = None
 
     is_read: bool = Field(False, alias='read')
     read_at: Annotated[datetime, BeforeValidator(parse_datetime)] | None = Field(None, alias='readAt')
     created_at: Annotated[datetime, BeforeValidator(parse_datetime)] = Field(alias='createdAt')
 
-    actor: User
+    actor: User | None = None
     sound: bool = False  # for notifications from stream
 
     def __hash__(self):
@@ -177,6 +177,9 @@ class Notification(ITDBaseModel):
 
     def get_text(self, actor: bool = True, avatar: bool = False) -> str:
         text = ''
+        if self.title:
+            return self.title
+        assert self.actor
         if avatar:
             text += self.actor.avatar + ' '
         if actor:
@@ -219,7 +222,7 @@ class Notification(ITDBaseModel):
             case NotificationType.LIKE | NotificationType.COMMENT_LIKE:
                 return 'red'
 
-            case NotificationType.MENTION | NotificationType.COMMENT_MENTION:
+            case NotificationType.MENTION | NotificationType.COMMENT_MENTION | NotificationType.EVENT_REMINDER:
                 return 'purple'
 
     def __str__(self):

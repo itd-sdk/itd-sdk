@@ -95,6 +95,7 @@ class NotificationType(Enum):
     COMMENT_LIKE = 'comment_like'
     COMMENT_MENTION = 'comment_mention'
     WALL_POST = 'wall_post'
+    EVENT_REMINDER = 'alice_task_reminder'
 
 
 class ParseMode(Enum):
