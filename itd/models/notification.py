@@ -6,7 +6,7 @@ from threading import Thread
 from typing import TYPE_CHECKING, Annotated, Any, Callable, Iterator, Literal, cast
 from uuid import UUID
 
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, BeforeValidator, Field, field_validator
 from sseclient import SSEClient
 
 from itd.api.notifications import (
@@ -149,6 +149,10 @@ class Notification(ITDBaseModel):
         None  # follow - none, comment/reply - content, repost - original post content, like - post/comment content, wall_post - wall post content
     )
     title: str | None = None
+    event_id: str | None = Field(None, alias='eventId')
+    event_cycle: int | None = Field(None, alias='eventCycle')
+    expires_at: Annotated[datetime, BeforeValidator(parse_datetime)] | None = Field(None, alias='expiresAt')
+    link: str | None = None
 
     is_read: bool = Field(False, alias='read')
     read_at: Annotated[datetime, BeforeValidator(parse_datetime)] | None = Field(None, alias='readAt')
@@ -229,6 +233,17 @@ class Notification(ITDBaseModel):
         return self.get_text()
 
 
+class AliceBell(BaseModel):
+    id: str
+    expires_at: Annotated[datetime, BeforeValidator(parse_datetime)] = Field(alias='expiresAt')
+    author: str | None = Field(None, alias='buyerUsername')
+
+    @field_validator('author')
+    @classmethod
+    def _strip_at(cls, v: str | None) -> str | None:
+        return (v.removeprefix('@') or None) if isinstance(v, str) else None
+
+
 class Notifications(ITDList[Notification]):
     cursor: int = 0
 
@@ -241,6 +256,7 @@ class Notifications(ITDList[Notification]):
         for type in NotificationType:
             self._callbacks[type] = []
         self._callbacks[None] = []
+        self._bell_callbacks = []
 
     def _fetch(self, client: Client, limit: int) -> dict:
         return get_notifications(client, limit, len(self)).json()
@@ -269,7 +285,7 @@ class Notifications(ITDList[Notification]):
             self._unread = get_unread_notifications_count(self.client).json()['count']
         return self._unread
 
-    def stream(self) -> Iterator[Notification]:
+    def stream(self) -> Iterator[Notification | AliceBell]:
         self._stream = stream_notifications(self.client)
         l.info('start stream')
 
@@ -282,12 +298,20 @@ class Notifications(ITDList[Notification]):
                 l.info('received init message', data)
                 continue  # initial message
 
+            if event.event == 'alice.bell':
+                bell = AliceBell.model_validate(data)
+                l.info('alice bell by %s', bell.author)
+                for callback in self._bell_callbacks:
+                    callback(bell)
+                yield bell
+                continue
+
             notification: Notification = Notification.from_dict(data, self, client=self.client)
             self.insert(0, notification)
             if self._unread is not None:
                 self._unread += 1
 
-            l.info('new notification type=%s', notification.type.value)
+            l.info('notification type=%s preview=%s', notification.type.value, notification.preview)
             exec(f'self.on_{notification.type.value}(notification)')
             self.on_notification(notification)
             for callback in self._callbacks[notification.type] + self._callbacks[None]:
@@ -335,11 +359,20 @@ class Notifications(ITDList[Notification]):
 
     def on_wall_post(self, notification: Notification, /) -> None: ...
 
+    def on_alice_task_reminder(self, notification: Notification, /) -> None: ...
+
     def on_notification(self, notification: Notification, /) -> None: ...
 
     def on(self, type: NotificationType | None = None):
         def decorator(func: Callable[[Notification], Any]):
             self._callbacks[type].append(func)
+            return func
+
+        return decorator
+
+    def on_bell(self):
+        def decorator(func: Callable[[AliceBell], Any]):
+            self._bell_callbacks.append(func)
             return func
 
         return decorator
