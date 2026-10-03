@@ -183,7 +183,7 @@ class EventAnchor(BaseModel):
     id: UUID | None = None
 
 
-class EventSticket(ITDBaseModel):
+class EventSticker(ITDBaseModel):
     id: UUID
     type: Literal['sticker'] = Field(alias='kind')
     asset: str
@@ -217,7 +217,7 @@ class EventProfile(ITDBaseModel):
     curtains: EventProfileCurtains
     aura: int | None = None
     nickname: str | None = None
-    stickers: list[EventSticket] = Field(default_factory=list, alias='placements')
+    stickers: list[EventSticker] = Field(default_factory=list, alias='placements')
     balloons: list[EventBalloon] = Field(default_factory=list)
 
     def __init__(self, id: str | UUID, *, client: Client | None = None):
