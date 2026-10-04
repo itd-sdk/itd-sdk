@@ -2,6 +2,14 @@ from enum import Enum
 from typing import Literal
 
 
+class EventItemType(Enum):
+    STICKER = 'sticker'
+    ERASER = 'eraser'
+    WINDOW = 'window'
+    BALLOON = 'stain'
+    CUSHION = 'whoopee_cushion'
+
+
 class AnnouncementButtonStyle(Enum):
     PRIMARY = 'primary'
     SECONDARY = 'secondary'

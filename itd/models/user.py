@@ -8,7 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, BeforeValidator, Field
 
 from itd.api.pins import get_pins, remove_pin
-from itd.api.portal import get_event_balance, get_event_profile
+from itd.api.portal import get_event_balance, get_event_correctors_inventory, get_event_profile, get_event_red_pens_inventory, get_my_event_inventory
 from itd.api.search import search
 from itd.api.subscription import get_payment_methods, get_subscription, pay_subscription, toggle_subscription_auto_renewal
 from itd.api.users import (
@@ -32,7 +32,7 @@ from itd.api.users import get_follow_status as _get_follow_status
 from itd.core.base import ITDBaseModel, ITDList
 from itd.core.default import get_default_client
 from itd.core.utils import parse_datetime, to_uuid
-from itd.enums import AccessType, LastSeenUnit, LoadStatus, ReportReason, ReportTargetType, Role, Unset
+from itd.enums import AccessType, EventItemType, LastSeenUnit, LoadStatus, ReportReason, ReportTargetType, Role, Unset
 from itd.exceptions import AccountDeletedError, NotFoundError, PinNotOwnedError
 from itd.models.file import File
 from itd.models.pin import Pin
@@ -226,6 +226,12 @@ class EventProfile(ITDBaseModel):
 
     def _refresh(self, client: Client):
         return get_event_profile(client, self.id).json()
+
+
+class EventItem(BaseModel):
+    id: str  # inventoryItemId
+    type: EventItemType = Field(alias='kind')
+    asset: str | None = None  # /public/events/aliceai/<asset>
 
 
 class LastSeen(BaseModel):
@@ -605,6 +611,18 @@ class Me(_UserBase):
     @cached_property
     def event_balance(self) -> int:
         return get_event_balance(self.client).json()['balance']
+
+    @cached_property
+    def event_inventory(self) -> list[EventItem]:
+        return [EventItem.model_validate(item) for item in get_my_event_inventory(self.client).json()['items']]
+
+    @cached_property
+    def event_red_pens_count(self) -> int:
+        return get_event_red_pens_inventory(self.client).json()['data']['events'][0]['balance']
+
+    @cached_property
+    def event_correctors_count(self) -> int:
+        return get_event_correctors_inventory(self.client).json()['data']['events'][0]['balance']
 
 
 class Followers(ITDList[User]):
