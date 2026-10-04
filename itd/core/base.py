@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from functools import cache
+from functools import cache, cached_property
 from typing import TYPE_CHECKING, Any, Iterator, Literal, SupportsIndex, TypeVar, cast, overload
 from uuid import UUID
 
@@ -156,7 +156,7 @@ class ITDBaseModel:
                 and not name.startswith('_')
                 and name not in ('client', 'model_fields_set', 'load_status')
                 and not callable(value)
-                and not isinstance(_getattr(type(self), name), property)
+                and not isinstance(_getattr(type(self), name), property | cached_property)
                 and _getattr(self, 'load_status') in (LoadStatus.NO, LoadStatus.PARTIALLY)
                 and name not in (_getattr(self, '_loaded_attrs') or {name})
                 and self.client.config.load_on_getattr
