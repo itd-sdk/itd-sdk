@@ -155,40 +155,52 @@ def _utf16_slice(text: str, start: int, end: int) -> str:
     return encoded[start * 2 : end * 2].decode('utf-16-le', errors='replace')
 
 
-def apply_corrections(text: str, marks: list[CorrectorMark] = [], corrections: list[RedPenCorrection] = [], mark_char: str = '■') -> str:
-    """Текст поста так, как его видно на сайте: замазанное заменено на `mark_char`, исправленное - на правку
+def _stamp(item: CorrectorMark | RedPenCorrection) -> float:
+    return item.created_at.timestamp() if item.created_at else 0
 
-    Если замазка и правка попали на один фрагмент, остается более поздняя (как на сайте).
+
+def visible_marks(marks: list[CorrectorMark], corrections: list[RedPenCorrection] = []) -> list[CorrectorMark]:
+    """Замазки, которые видно на сайте
+
+    Если на тот же фрагмент позже легла правка красной ручкой, сайт показывает правку, а не замазку.
+
+    Args:
+        marks (list[CorrectorMark]): Замазки
+        corrections (list[RedPenCorrection], optional): Правки красной ручкой. Defaults to [].
+
+    Returns:
+        list[CorrectorMark]: Видимые замазки
+    """
+    newest_pen = {}
+    for correction in corrections:
+        key = (correction.start, correction.end)
+        newest_pen[key] = max(newest_pen.get(key, 0), _stamp(correction))
+    return [mark for mark in marks if (mark.start, mark.end) not in newest_pen or _stamp(mark) > newest_pen[(mark.start, mark.end)]]
+
+
+def apply_marks(text: str, marks: list[CorrectorMark], mark_char: str = '■') -> str:
+    """Текст с замазками: замазанные символы заменены на `mark_char` (пробелы остаются), как при копировании с сайта
+
+    Правки красной ручкой сюда не входят: на сайте исходное слово остается зачеркнутым, а правка пишется поверх,
+    в строку это без потерь не превратить. Они доступны через `RedPenState.active_corrections`.
 
     Args:
         text (str): Исходный текст
-        marks (list[CorrectorMark], optional): Замазки. Defaults to [].
-        corrections (list[RedPenCorrection], optional): Правки красной ручкой. Defaults to [].
-        mark_char (str, optional): Чем заменять замазанные символы (пробелы остаются). Defaults to '■'.
+        marks (list[CorrectorMark]): Замазки
+        mark_char (str, optional): Чем заменять замазанные символы. Defaults to '■'.
 
     Returns:
-        str: Текст с правками
+        str: Текст с замазками
     """
-    latest: dict[tuple[int, int], CorrectorMark | RedPenCorrection] = {}
-    for item in [*marks, *corrections]:
-        key = (item.start, item.end)
-        current = latest.get(key)
-        stamp = item.created_at.timestamp() if item.created_at else 0
-        if current is None or stamp >= (current.created_at.timestamp() if current.created_at else 0):
-            latest[key] = item
-
     length = len(text.encode('utf-16-le')) // 2
     result = []
     position = 0
-    for (start, end), item in sorted(latest.items()):
-        if start < position:  # пересекается с уже примененной правкой
+    for mark in sorted(marks, key=lambda mark: (mark.start, mark.end)):
+        start = max(mark.start, position)  # замазки могут пересекаться
+        if start >= mark.end:
             continue
         result.append(_utf16_slice(text, position, start))
-        original = _utf16_slice(text, start, end)
-        if isinstance(item, RedPenCorrection):
-            result.append(item.replacement)
-        else:
-            result.append(''.join(char if char.isspace() else mark_char for char in original))
-        position = end
+        result.append(''.join(char if char.isspace() else mark_char for char in _utf16_slice(text, start, mark.end)))
+        position = mark.end
     result.append(_utf16_slice(text, position, length))
     return ''.join(result)

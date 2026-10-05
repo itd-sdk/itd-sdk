@@ -6,7 +6,7 @@ import pytest
 from itd.core.default import set_default_client
 
 from itd.enums import NotebookStyle
-from itd.models.correction import CorrectorState, RedPenState, apply_corrections
+from itd.models.correction import CorrectorState, RedPenState, apply_marks, visible_marks
 from itd.models.post import Post
 
 pytestmark = pytest.mark.usefixtures('keep_default_client')
@@ -71,7 +71,7 @@ def test_post_without_tools(mock_client):
     data = {k: v for k, v in POST_DATA.items() if k not in ('notebook', 'corrector', 'redPen')}
     post = Post.from_dict(data, client=mock_client)
     assert post.notebook is None and post.corrector is None and post.red_pen is None
-    assert post.corrected_content == TEXT
+    assert post.masked_content == TEXT
 
 
 def test_active_marks():
@@ -93,15 +93,35 @@ def test_expired_claim_hides_corrections():
     assert state.active_corrections == []
 
 
-def test_corrected_content(post):
-    assert post.corrected_content == 'Сегодня мы ■■■■■ в школу 😀 Ваще ничего не понятно'
+def test_masked_content(post):
+    # правка красной ручкой в текст не подставляется, только замазка
+    assert post.masked_content == 'Сегодня мы ■■■■■ в школу 😀 Вообще ничего не понятно'
 
 
-def test_apply_corrections_latest_wins():
-    corrector = CorrectorState.model_validate({'marks': [{'id': 'm', 'start': 0, 'end': 7, 'createdAt': '2026-09-01T00:00:00Z'}]})
-    red_pen = RedPenState.model_validate({'corrections': [{'id': 'p', 'start': 0, 'end': 7, 'replacement': 'Завтра', 'createdAt': '2026-09-02T00:00:00Z'}]})
-    assert apply_corrections(TEXT, corrector.marks, red_pen.corrections).startswith('Завтра мы')
-    assert apply_corrections('a b', corrector.marks[:0], []) == 'a b'
+def test_newer_red_pen_hides_mark():
+    corrector = CorrectorState.model_validate(
+        {
+            'marks': [
+                {'id': 'm1', 'start': 0, 'end': 7, 'createdAt': '2026-09-01T00:00:00Z'},
+                {'id': 'm2', 'start': 8, 'end': 10, 'createdAt': '2026-09-03T00:00:00Z'},
+            ]
+        }
+    )
+    red_pen = RedPenState.model_validate(
+        {
+            'corrections': [
+                {'id': 'p1', 'start': 0, 'end': 7, 'replacement': 'Завтра', 'createdAt': '2026-09-02T00:00:00Z'},  # позже m1
+                {'id': 'p2', 'start': 8, 'end': 10, 'replacement': 'вы', 'createdAt': '2026-09-02T00:00:00Z'},  # раньше m2
+            ]
+        }
+    )
+    assert [mark.id for mark in visible_marks(corrector.marks, red_pen.corrections)] == ['m2']
+
+
+def test_apply_marks():
+    corrector = CorrectorState.model_validate({'marks': [{'id': 'm', 'start': 0, 'end': 7}, {'id': 'n', 'start': 5, 'end': 13}]})
+    assert apply_marks(TEXT, corrector.marks) == '■■■■■■■ ■■ ■■шли в школу 😀 Вообще ничего не понятно'  # пересечение не ломает текст
+    assert apply_marks('a b', []) == 'a b'
 
 
 def test_apply_corrector_calls_api(post, mock_client):

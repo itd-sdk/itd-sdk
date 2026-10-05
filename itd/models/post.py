@@ -40,7 +40,7 @@ from itd.core.utils import parse_datetime, to_uuid
 from itd.enums import ALL, ParseMode, PostsTab, ReportReason, ReportTargetType, UserPostSorting, ViewReason, ViewSource
 from itd.exceptions import NotFoundError
 from itd.models.comment import Comment, Comments
-from itd.models.correction import CorrectorMark, CorrectorState, Notebook, RedPenClaim, RedPenState, ToolEvent, apply_corrections
+from itd.models.correction import CorrectorMark, CorrectorState, Notebook, RedPenClaim, RedPenState, ToolEvent, apply_marks, visible_marks
 from itd.models.file import PostAttach
 from itd.models.hashtag import Hashtag
 from itd.models.poll import NewPoll, Poll, PollOption
@@ -390,13 +390,16 @@ class Post(ITDBaseModel):
         return Report(self.id, ReportTargetType.POST, reason, description, client or self.client)
 
     @property
-    def corrected_content(self) -> str:
-        """Текст так, как его видно на сайте: с замазками (■) и правками красной ручкой, которые еще не истекли"""
-        return apply_corrections(
-            self.content,
-            self.corrector.active_marks if self.corrector else [],
-            self.red_pen.active_corrections if self.red_pen else [],
-        )
+    def masked_content(self) -> str:
+        """Текст с замазками корректора (■), которые еще не истекли
+
+        Правки красной ручкой не применяются (на сайте слово остается зачеркнутым, а правка пишется поверх):
+        они есть в `post.red_pen.active_corrections`
+        """
+        if not self.corrector:
+            return self.content
+        marks = visible_marks(self.corrector.active_marks, self.red_pen.active_corrections if self.red_pen else [])
+        return apply_marks(self.content, marks)
 
     def refresh_corrections(self, client: Client | None = None) -> None:
         """Обновить состояние корректора и красной ручки, не перезагружая весь пост"""
