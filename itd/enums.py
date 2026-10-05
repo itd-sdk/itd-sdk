@@ -210,6 +210,11 @@ class SpanType(Enum):
     MENTION = 'mention'  # упоминание (появляется только при получении постов, при создании нету)
 
 
+class NotebookStyle(Enum):
+    GRID = 'grid'  # клетка
+    RULED = 'ruled'  # линейка
+
+
 class Role(Enum):
     USER = 'user'
     ADMIN = 'admin'
