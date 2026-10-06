@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from time import sleep
 from typing import TYPE_CHECKING, Annotated, Literal, overload
 from uuid import UUID
 
-from pydantic import BeforeValidator, Field
+from pydantic import BaseModel, BeforeValidator, Field, field_validator
 
 from itd.api.hashtags import get_posts_by_hashtag
 from itd.api.portal import (
@@ -34,25 +34,158 @@ from itd.api.posts import (
     unlike_post,
     unpin_post
 )
-from itd.core.base import ITDBaseModel, ITDList
+from itd.core.base import ITDBaseModel, ITDdatetime, ITDList
 from itd.core.logger import get_logger
 from itd.core.utils import parse_datetime, to_uuid
-from itd.enums import ALL, ParseMode, PostsTab, ReportReason, ReportTargetType, UserPostSorting, ViewReason, ViewSource
+from itd.enums import ALL, LoadStatus, NotebookStyle, ParseMode, PostsTab, ReportReason, ReportTargetType, UserPostSorting, ViewReason, ViewSource
 from itd.exceptions import NotFoundError
 from itd.models.comment import Comment, Comments
-from itd.models.correction import CorrectorMark, CorrectorState, Notebook, RedPenClaim, RedPenState, ToolEvent, apply_marks, visible_marks
 from itd.models.file import PostAttach
 from itd.models.hashtag import Hashtag
 from itd.models.poll import NewPoll, Poll, PollOption
 from itd.models.report import Report
 from itd.models.span import Span
 from itd.models.user import Me, User, _UserBase
-from itd.models.utils import ATTACHMENTS, calc_view_duration, format_attachments, parse_html, parse_md
+from itd.models.utils import ATTACHMENTS, apply_marks, calc_view_duration, format_attachments, parse_html, parse_md, visible_marks
 
 if TYPE_CHECKING:
     from itd.core.client import Client
 
 l = get_logger('post')  # noqa: E741
+
+
+def _is_alive(ends_at: datetime | None) -> bool:
+    return ends_at is None or ends_at > datetime.now(timezone.utc)
+
+
+class Corrector(ITDBaseModel):
+    """Замазанный текст"""
+
+    _post_id: UUID
+    id: UUID
+    start: int
+    end: int
+    event_id: str = Field(alias='eventId')
+    actor: User
+    created_at: ITDdatetime = Field(alias='createdAt')
+
+    def report(self, reason: str = 'Неприемлимая правка', client: Client | None = None):
+        report_corrector(client or self.client, str(self._post_id), str(self.id), reason)
+
+
+class CorrectorState(ITDBaseModel):
+    """Состояние замазки в посте"""
+
+    load_status = LoadStatus.FULL
+    _post_id: UUID | None = None
+
+    revision: str  # equals to red pens' revision
+    server_time: ITDdatetime | None = Field(None, alias='serverTime')
+    correctors: list[Corrector] = Field(default_factory=list, alias='marks')
+    event_id: str = Field(alias='events')
+
+    @field_validator('event_id', mode='before')
+    @classmethod
+    def validate_event_id(cls, events):
+        return events[0]['id']
+
+    @property
+    def my_corrector(self) -> Corrector | None:
+        return next((c for c in self.correctors if c.actor.id == self.client.user_id), None)
+
+    def _refresh(self, client: Client):
+        return get_event_posts_correctors_state(client, [self._post_id]).json()['data'][str(self._post_id)]
+
+    def cancel(self, client: Client | None = None):
+        if self.my_corrector is None:
+            raise ValueError('No own red pen claim in this post')
+        cancel_corrector(client or self.client, self._post_id)
+        self.refresh()
+
+    def apply(self, start: int, end: int, client: Client | None = None) -> Corrector:
+        apply_corrector(client or self.client, str(self._post_id), self.event_id, self.revision, start, end)
+        self.refresh()
+        assert self.my_corrector
+        return self.my_corrector
+
+    def _post_refresh(self, context: dict = {}):
+        if self._post_id is None:
+            self._post_id = context.get('post_id')
+        assert self._post_id
+        for c in self.correctors:
+            c._post_id = self._post_id
+
+
+class RedPen(BaseModel):
+    """Исправленное красной ручкой слово"""
+
+    id: UUID
+    start: int
+    end: int
+    replacement: str
+    created_at: ITDdatetime = Field(alias='createdAt')
+
+    def __str__(self) -> str:
+        return self.replacement
+
+
+class RedPenClaim(ITDBaseModel):
+    """Пользователи, исопльзовавшие красную ручку в посте"""
+
+    _post_id: UUID
+    id: UUID
+    event_id: str = Field(alias='eventId')
+    actor: User
+    is_owner: bool = Field(False, alias='isOwner')
+    used: int = 0  # max 3
+
+    def report(self, reason: str = 'Неприемлимая правка', client: Client | None = None):
+        report_red_pen(client or self.client, str(self._post_id), str(self.id), reason)
+
+
+class RedPenState(ITDBaseModel):
+    """Состояние исправлений красной ручкой в посте"""
+
+    _post_id: UUID | None = None
+    load_status = LoadStatus.FULL
+
+    revision: str
+    server_time: ITDdatetime | None = Field(None, alias='serverTime')
+    claims: list[RedPenClaim] = Field(default_factory=list)
+    red_pens: list[RedPen] = Field(default_factory=list, alias='corrections')
+    event_id: str = Field(alias='events')
+
+    @property
+    def my_claim(self) -> RedPenClaim | None:
+        return next((claim for claim in self.claims if claim.is_owner), None)
+
+    @field_validator('event_id', mode='before')
+    @classmethod
+    def validate_event_id(cls, events):
+        return events[0]['id']
+
+    def cancel(self, client: Client | None = None):
+        claim = self.my_claim
+        if claim is None:
+            raise ValueError('No own red pen claim in this post')
+        cancel_red_pen(client or self.client, self._post_id, claim.id)
+        self.refresh()
+
+    def _refresh(self, client: Client):
+        return get_event_posts_red_pens_state(client, [self._post_id]).json()['data'][str(self._post_id)]
+
+    def _post_refresh(self, context: dict = {}):
+        if self._post_id is None:
+            self._post_id = context.get('post_id')
+        assert self._post_id
+        for c in self.claims:
+            c._post_id = self._post_id
+
+    def apply(self, start: int, end: int, replacement: str, client: Client | None = None) -> RedPenClaim:
+        apply_red_pen(client or self.client, str(self._post_id), self.event_id, self.revision, start, end, replacement)
+        self.refresh()
+        assert self.my_claim
+        return self.my_claim
 
 
 class Post(ITDBaseModel):
@@ -66,10 +199,10 @@ class Post(ITDBaseModel):
     spans: list[Span] = []
     attachments: list[PostAttach]
     poll: Poll | None = None
-    notebook: Notebook | None = None  # пост-тетрадка
+    notebook: NotebookStyle | None = None
 
-    corrector: CorrectorState | None = None  # замазки корректором
-    red_pen: RedPenState | None = Field(None, alias='redPen')  # правки красной ручкой
+    corrector: CorrectorState
+    red_pen: RedPenState = Field(alias='redPen')
 
     comments: Comments = Field(default_factory=lambda: Comments(), alias='definitely_not_comments')
     first_comments: list[Comment] = Field([], alias='comments')
@@ -103,7 +236,7 @@ class Post(ITDBaseModel):
         self.visible = False
         self.comments = Comments(client=client)
         self.comments._post = self
-        self._extra_context = {'source': source, 'source_context': source_context}
+        self._extra_context = {'source': source, 'source_context': source_context, 'post_id': self.id}
         self._init_refresh()
 
     def for_client(self, client: Client):
@@ -173,7 +306,7 @@ class Post(ITDBaseModel):
         context = dict(context or {})
         context.update({'source': source, 'source_context': source_context})
         instance = super().from_dict(data, context=context, client=client)
-        instance._extra_context = {'source': source, 'source_context': source_context}
+        instance._extra_context = {'source': source, 'source_context': source_context, 'post_id': instance.id}
         instance.source = source
         instance.source_context = source_context
         instance.visible = False
@@ -389,83 +522,59 @@ class Post(ITDBaseModel):
     def report(self, reason: ReportReason, description: str | None = None, client: Client | None = None) -> Report:
         return Report(self.id, ReportTargetType.POST, reason, description, client or self.client)
 
-    @property
-    def masked_content(self) -> str:
-        """Текст с замазками корректора (■), которые еще не истекли
-
-        Правки красной ручкой не применяются (на сайте слово остается зачеркнутым, а правка пишется поверх):
-        они есть в `post.red_pen.active_corrections`
-        """
-        if not self.corrector:
+    def mask_content(self, mark_char: str = '■') -> str:
+        if not self.correctors:
             return self.content
-        marks = visible_marks(self.corrector.active_marks, self.red_pen.active_corrections if self.red_pen else [])
-        return apply_marks(self.content, marks)
+        return apply_marks(self.content, visible_marks(self.correctors, self.red_pens), mark_char)
 
-    def refresh_corrections(self, client: Client | None = None) -> None:
-        """Обновить состояние корректора и красной ручки, не перезагружая весь пост"""
-        client = client or self.client
-        self.corrector = CorrectorState.model_validate(get_event_posts_correctors_state(client, [self.id]).json()['data'].get(str(self.id)) or {})
-        self.red_pen = RedPenState.model_validate(get_event_posts_red_pens_state(client, [self.id]).json()['data'].get(str(self.id)) or {})
+    @property
+    def correctors(self) -> list[Corrector]:
+        return self.corrector.correctors
 
-    @staticmethod
-    def _tool_event(state: CorrectorState | RedPenState | None, name: str) -> ToolEvent:
-        event = state.active_event if state else None
-        if event is None:
-            raise ValueError(f'{name} is not available for this post: no active event')
-        return event
+    @property
+    def red_pens(self) -> list[RedPen]:
+        return self.red_pen.red_pens
+
+    @property
+    def event_revision(self) -> str:
+        return self.red_pen.revision  # or corrector.revision
 
     def apply_corrector(self, start: int, end: int, client: Client | None = None) -> None:
-        """Замазать фрагмент текста корректором (только в чужом посте, тратит корректор)
+        """Замазать фрагмент текста корректором (только в чужом посте)
 
         Args:
-            start (int): Начало фрагмента (смещение в UTF-16, как у спанов)
+            start (int): Начало фрагмента
             end (int): Конец фрагмента
             client (Client | None, optional): Клиент. Defaults to None.
         """
-        event = self._tool_event(self.corrector, 'Corrector')
-        apply_corrector(client or self.client, self.id, event.id, self.corrector.revision, start, end)  # type: ignore
-        self.refresh_corrections(client)
+        self.corrector.apply(start, end, client=client or self.client)
 
     def apply_red_pen(self, start: int, end: int, replacement: str, client: Client | None = None) -> None:
         """Исправить слово красной ручкой (только в чужом посте)
 
         Args:
-            start (int): Начало слова (смещение в UTF-16, как у спанов)
+            start (int): Начало слова
             end (int): Конец слова
             replacement (str): Новое слово
             client (Client | None, optional): Клиент. Defaults to None.
         """
-        event = self._tool_event(self.red_pen, 'Red pen')
-        apply_red_pen(client or self.client, self.id, event.id, self.red_pen.revision, start, end, replacement)  # type: ignore
-        self.refresh_corrections(client)
+        self.red_pen.apply(start, end, replacement, client=client or self.client)
 
     def cancel_corrector(self, client: Client | None = None) -> None:
         """Убрать свои замазки корректором с поста"""
-        cancel_corrector(client or self.client, self.id)
-        self.refresh_corrections(client)
+        self.corrector.cancel(client or self.client)
 
-    def cancel_red_pen(self, claim: RedPenClaim | str | UUID | None = None, client: Client | None = None) -> None:
-        """Убрать свои правки красной ручкой
+    def cancel_red_pen(self, client: Client | None = None) -> None:
+        """Убрать свои правки красной ручкой"""
+        self.red_pen.cancel(client or self.client)
 
-        Args:
-            claim (RedPenClaim | str | UUID | None, optional): Заявка на правки. По умолчанию своя активная заявка.
-            client (Client | None, optional): Клиент. Defaults to None.
-        """
-        if claim is None:
-            claim = self.red_pen.own_claim if self.red_pen else None
-            if claim is None:
-                raise ValueError('No own red pen claim in this post')
-        claim_id = claim.id if isinstance(claim, RedPenClaim) else claim
-        cancel_red_pen(client or self.client, self.id, str(claim_id))
-        self.refresh_corrections(client)
-
-    def report_corrector(self, mark: CorrectorMark | str | UUID, reason: str = 'Неприемлемая правка', client: Client | None = None) -> None:
+    def report_corrector(self, mark: Corrector | str | UUID, reason: str = 'Неприемлемая правка', client: Client | None = None) -> None:
         """Пожаловаться на замазку корректором"""
-        report_corrector(client or self.client, self.id, mark.id if isinstance(mark, CorrectorMark) else mark, reason)  # type: ignore
+        report_corrector(client or self.client, self.id, mark.id if isinstance(mark, Corrector) else mark, reason)
 
     def report_red_pen(self, claim: RedPenClaim | str | UUID, reason: str = 'Неприемлемая правка', client: Client | None = None) -> None:
         """Пожаловаться на правки красной ручкой"""
-        report_red_pen(client or self.client, self.id, claim.id if isinstance(claim, RedPenClaim) else claim, reason)  # type: ignore
+        report_red_pen(client or self.client, self.id, claim.id if isinstance(claim, RedPenClaim) else claim, reason)
 
     def set_visible(self, client: Client | None = None):
         if not self.visible:
@@ -511,6 +620,12 @@ class Post(ITDBaseModel):
     @property
     def link(self) -> str:
         return self.url
+
+    @field_validator('notebook', mode='before')
+    @classmethod
+    def validate_notebook(cls, notebook: dict | None):
+        if notebook:
+            return notebook.get('style')
 
 
 class _BasePosts(ITDList[Post]):
