@@ -309,7 +309,20 @@ def api_wrapper(*exceptions: ITDException):
     return decorator
 
 
+@dataclass
+class Endpoint:
+    """Объявление эндпоинта - лежит в атрибуте endpoint у функции, которую вернул декоратор"""
+
+    method: str
+    url: str
+    exceptions: tuple[ITDException, ...] = ()
+    sse: bool = False
+    level: AuthLevel = AuthLevel.ACCESS
+
+
 def endpoint(method: str, url: str, *exceptions: ITDException, sse: bool = False, level: AuthLevel = AuthLevel.ACCESS):
+    declaration = Endpoint(method, url, exceptions, sse, level)
+
     def decorator(func: Callable[..., dict | Payload | None]):
         params = signature(func) if '{' in url else None  # аргументы нужно связывать, только если url шаблонный
 
@@ -328,6 +341,8 @@ def endpoint(method: str, url: str, *exceptions: ITDException, sse: bool = False
 
             return client.request(method, path, payload.params, payload.files, sse=sse, level=level)
 
-        return request if sse else api_wrapper(*exceptions)(request)
+        wrapped = request if sse else api_wrapper(*exceptions)(request)
+        wrapped.endpoint = declaration
+        return wrapped
 
     return decorator
