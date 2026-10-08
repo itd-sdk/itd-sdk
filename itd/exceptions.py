@@ -401,6 +401,15 @@ class QRApproverNotAllowed(QRError):
     text = 'QR approving allowed only for mobile devices'
 
 
+class EventError(ITDException):
+    pass
+
+
+class ItemNotFoundError(EventError):
+    code = 'ITEM_UNAVAILABLE'
+    text = 'Inventory item is not found'
+
+
 DEFAULT_ERRORS = (
     RateLimitError(),
     InvalidAccessTokenError(),

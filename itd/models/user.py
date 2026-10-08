@@ -8,7 +8,14 @@ from uuid import UUID
 from pydantic import BaseModel, BeforeValidator, Field
 
 from itd.api.pins import get_pins, remove_pin
-from itd.api.portal import get_event_balance, get_event_correctors_inventory, get_event_profile, get_event_red_pens_inventory, get_my_event_inventory
+from itd.api.portal import (
+    break_event_window,
+    get_event_balance,
+    get_event_correctors_inventory,
+    get_event_profile,
+    get_event_red_pens_inventory,
+    get_my_event_inventory
+)
 from itd.api.search import search
 from itd.api.subscription import get_payment_methods, get_subscription, pay_subscription, toggle_subscription_auto_renewal
 from itd.api.users import (
@@ -166,9 +173,15 @@ class Nickname(BaseModel):
 
 
 class EventProfileWindow(ITDBaseModel):
+    _id: UUID
     broken: bool = False
     asset: str | None = None
     broken_at: datetime | None = Field(None, alias='brokenAt')
+
+    def break_window(self, item: UUID, client: Client | None = None):  # "break" busy
+        self.broken_at = break_event_window(client or self.client, str(self._id), str(item)).json()['window']['brokenAt']
+        self.broken = True
+        self.asset = 'window_broken'
 
 
 class EventProfileCurtains(ITDBaseModel):
@@ -223,13 +236,15 @@ class EventProfile(ITDBaseModel):
     def __init__(self, id: str | UUID, *, client: Client | None = None):
         super().__init__(client=client)
         self.id = to_uuid(id)
+        self._extra_context = {'id': id}
+        self.window._id = self.id
 
     def _refresh(self, client: Client):
         return get_event_profile(client, self.id).json()
 
 
 class EventItem(BaseModel):
-    id: str  # inventoryItemId
+    id: UUID  # inventoryItemId
     type: EventItemType = Field(alias='kind')
     asset: str | None = None  # /public/events/aliceai/<asset>
 
@@ -276,6 +291,7 @@ class _UserBase(ITDBaseModel):
             self.username = username_or_id
         elif isinstance(username_or_id, UUID):
             self.id = username_or_id
+        self._extra_context = {'identifier': self._identifier}
         super().__init__(client)
 
     def __str__(self) -> str:

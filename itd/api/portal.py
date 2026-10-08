@@ -110,7 +110,7 @@ def place_event_balloons(client: Client, id: UUID, item_id: UUID, x: float, y: f
 
 @endpoint('post', 'v1/aliceai/profiles/{id}/window/break')
 def break_event_window(client: Client, id: UUID, item_id: UUID):
-    return {'inventoryItemId': item_id}
+    return {'inventoryItemId': str(item_id)}
 
 
 @endpoint('post', 'v1/aliceai/profiles/{id}/placements/{sticker_id}/erase')
@@ -119,29 +119,29 @@ def erase_event_sticker(client: Client, id: UUID, sticker_id: UUID): ...
 
 @endpoint('post', 'red-pens/apply')
 def apply_red_pen(client: Client, id: UUID, event_id: str, revision: str, start: int, end: int, replacement: str):
-    return {'postId': id, 'eventId': event_id, 'revision': revision, 'start': start, 'end': end, 'replacement': replacement}
+    return {'postId': str(id), 'eventId': event_id, 'revision': revision, 'start': start, 'end': end, 'replacement': replacement}
 
 
 @endpoint('post', 'correctors/apply')
 def apply_corrector(client: Client, id: UUID, event_id: str, revision: str, start: int, end: int):
-    return {'postId': id, 'eventId': event_id, 'revision': revision, 'start': start, 'end': end}
+    return {'postId': str(id), 'eventId': event_id, 'revision': revision, 'start': start, 'end': end}
 
 
 @endpoint('post', 'correctors/cancel')
 def cancel_corrector(client: Client, id: UUID):
-    return {'postId': id}
+    return {'postId': str(id)}
 
 
 @endpoint('post', 'red-pens/cancel')
 def cancel_red_pen(client: Client, id: UUID, claim_id: str):
-    return {'postId': id, 'claimId': claim_id}
+    return {'postId': str(id), 'claimId': str(claim_id)}
 
 
 @endpoint('post', 'correctors/report')
 def report_corrector(client: Client, id: UUID, mark_id: UUID, reason: str = 'Неприемлемая правка'):
-    return {'postId': id, 'markId': mark_id, 'reason': reason}
+    return {'postId': str(id), 'markId': str(mark_id), 'reason': reason}
 
 
 @endpoint('post', 'red-pens/report')
 def report_red_pen(client: Client, id: UUID, claim_id: UUID, reason: str = 'Неприемлемая правка'):
-    return {'postId': id, 'claimId': claim_id, 'reason': reason}
+    return {'postId': str(id), 'claimId': str(claim_id), 'reason': reason}
