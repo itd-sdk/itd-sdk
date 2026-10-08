@@ -72,6 +72,9 @@ class Corrector(ITDBaseModel):
     def report(self, reason: str = 'Неприемлимая правка', client: Client | None = None):
         report_corrector(client or self.client, str(self._post_id), str(self.id), reason)
 
+    def cancel(self, client: Client | None = None):
+        cancel_corrector(client or self.client, str(self._post_id))
+
 
 class CorrectorState(ITDBaseModel):
     """Состояние замазки в посте"""
@@ -94,12 +97,12 @@ class CorrectorState(ITDBaseModel):
         return next((c for c in self.correctors if c.actor.id == self.client.user_id), None)
 
     def _refresh(self, client: Client):
-        return get_event_posts_correctors_state(client, [self._post_id]).json()['data'][str(self._post_id)]
+        return get_event_posts_correctors_state(client, [str(self._post_id)]).json()['data'][str(self._post_id)]
 
     def cancel(self, client: Client | None = None):
         if self.my_corrector is None:
-            raise ValueError('No own red pen claim in this post')
-        cancel_corrector(client or self.client, self._post_id)
+            raise ValueError('No own correctors in this post')
+        cancel_corrector(client or self.client, str(self._post_id))
         self.refresh()
 
     def apply(self, start: int, end: int, client: Client | None = None) -> Corrector:
@@ -142,6 +145,9 @@ class RedPenClaim(ITDBaseModel):
     def report(self, reason: str = 'Неприемлимая правка', client: Client | None = None):
         report_red_pen(client or self.client, str(self._post_id), str(self.id), reason)
 
+    def cancel(self, client: Client | None = None):
+        cancel_red_pen(client or self.client, str(self._post_id), str(self.id))
+
 
 class RedPenState(ITDBaseModel):
     """Состояние исправлений красной ручкой в посте"""
@@ -168,7 +174,7 @@ class RedPenState(ITDBaseModel):
         claim = self.my_claim
         if claim is None:
             raise ValueError('No own red pen claim in this post')
-        cancel_red_pen(client or self.client, self._post_id, claim.id)
+        claim.cancel()
         self.refresh()
 
     def _refresh(self, client: Client):
