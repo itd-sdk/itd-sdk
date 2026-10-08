@@ -1,10 +1,13 @@
 from importlib import import_module
 from inspect import signature
+from pathlib import Path
 from string import Formatter
 from uuid import uuid4
 
 import pytest
 from helpers import make_client, make_response, make_token
+
+import itd.api
 
 from itd.api.auth import logout
 from itd.api.comments import get_comments
@@ -53,7 +56,7 @@ def test_endpoint_without_body_sends_no_params(fetches):
 
     get_pins(client)
 
-    assert fetches[0] == {'method': 'get', 'url': 'users/me/pins', 'params': {}, 'files': {}, 'send_token': True}
+    assert fetches[0] == {'method': 'get', 'url': 'users/me/pins', 'params': {}, 'files': {}}
 
 
 def test_endpoint_can_send_files(fetches):
@@ -66,27 +69,28 @@ def test_endpoint_can_send_files(fetches):
 
 
 def test_search_goes_through_whole_pipeline(monkeypatch, refreshes):
-    """Путь целиком: эндпоинт -> Client.request (обновление токена) -> fetch"""
+    """Путь целиком: эндпоинт -> Client.request -> fetch -> api_wrapper (обновление протухшего токена и повтор)"""
     client = make_client(make_token(-10))
     calls = []
 
-    def fake_fetch(client, method, url, params={}, files={}, send_token=True):
-        calls.append((method, url, params, send_token))
+    def fake_fetch(client, method, url, params={}, files={}, sse=False):
+        calls.append((method, url, params))
+        if len(calls) == 1:  # search с AuthLevel.NO отправляет протухший токен, сервер его отвергает
+            return make_response(401, {'error': 'token expired'})
         return make_response(200, {'data': {'users': [], 'hashtags': []}})
 
     monkeypatch.setattr('itd.core.client.fetch', fake_fetch)
 
     assert search(client, 'итд', 2, 3).json()['data'] == {'users': [], 'hashtags': []}
-    assert calls == [('get', 'search', {'userLimit': 2, 'hashtagLimit': 3, 'q': 'итд'}, True)]
-    assert len(refreshes) == 1  # протухший токен обновлен, хотя эндпоинт с AuthLevel.NO
+    assert calls == [('get', 'search', {'userLimit': 2, 'hashtagLimit': 3, 'q': 'итд'})] * 2
+    assert len(refreshes) == 1  # токен обновлен и запрос повторен, хотя эндпоинт с AuthLevel.NO
 
 
 def test_all_url_templates_match_signatures():
     """Все имена в шаблонах url должны быть аргументами своих функций"""
     checked = 0
-    for name in ('auth', 'comments', 'dwell', 'etc', 'files', 'hashtags', 'notifications', 'pins', 'platform', 'polls', 'portal', 'posts', 'reports',
-                 'search', 'sessions', 'subscription', 'users', 'verification'):
-        module = import_module(f'itd.api.{name}')
+    for file in sorted(Path(itd.api.__file__).parent.glob('*.py')):  # все модули апи, а не список имен: он отстает от репозитория
+        module = import_module(f'itd.api.{file.stem}')
         for func in vars(module).values():
             declaration = getattr(func, 'endpoint', None)
             if declaration is None:

@@ -7,7 +7,8 @@ from uuid import uuid4
 
 from requests import Response
 
-from itd.core.client import Client, Config
+from itd.core.client import Client
+from itd.core.config import Config
 
 
 def make_token(expires_in: float) -> str:
@@ -30,5 +31,12 @@ def make_response(status: int, json: dict) -> Response:
 
 
 def make_client(access: str | None = None, refresh: str | None = 'refresh-token') -> Client:
-    # timers are disabled so client doesnt go to network
-    return Client(refresh, access, config=Config(dwell_send_interval=0, post_update_stats=False, dwell_check_active=False))
+    """Клиент для оффлайн тестов: токены ставятся в профиль напрямую, потому что auth= их проверяет запросом"""
+    # no-auth - профиль без файла и без интерактивного входа, таймеры выключены, чтобы клиент не ходил в сеть
+    client = Client('no-auth', config=Config(dwell_send_interval=0, post_update_stats=False, dwell_check_active=False))
+    if access:
+        client._profile.set_access(access)
+    if refresh:
+        client._profile.set_refresh(refresh)
+    client._set_from_profile()
+    return client
