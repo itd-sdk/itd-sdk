@@ -156,7 +156,7 @@ class ITDBaseModel:
                 and not name.startswith('_')
                 and name not in ('client', 'model_fields_set', 'load_status')
                 and not callable(value)
-                and not isinstance(_getattr(type(self), name), property | cached_property)
+                and not isinstance(getattr(type(self), name, None), property | cached_property)  # getattr, а не _getattr: он не видит унаследованные property
                 and _getattr(self, 'load_status') in (LoadStatus.NO, LoadStatus.PARTIALLY)
                 and name not in (_getattr(self, '_loaded_attrs') or {name})
                 and self.client.config.load_on_getattr

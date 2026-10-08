@@ -10,11 +10,20 @@ from pydantic import BaseModel, BeforeValidator, Field
 from itd.api.pins import get_pins, remove_pin
 from itd.api.portal import (
     break_event_window,
+    claim_event_curtains,
+    donate_event_curtains,
+    erase_event_sticker,
     get_event_balance,
     get_event_correctors_inventory,
     get_event_profile,
+    get_event_profile_fart,
     get_event_red_pens_inventory,
-    get_my_event_inventory
+    get_my_event_inventory,
+    get_my_event_nicknames,
+    place_event_balloons,
+    place_event_sticker,
+    set_event_curtains,
+    set_event_nickname
 )
 from itd.api.search import search
 from itd.api.subscription import get_payment_methods, get_subscription, pay_subscription, toggle_subscription_auto_renewal
@@ -40,7 +49,7 @@ from itd.core.base import ITDBaseModel, ITDList
 from itd.core.default import get_default_client
 from itd.core.utils import parse_datetime, to_uuid
 from itd.enums import AccessType, EventItemType, LastSeenUnit, LoadStatus, ReportReason, ReportTargetType, Role, Unset
-from itd.exceptions import AccountDeletedError, NotFoundError, PinNotOwnedError
+from itd.exceptions import AccountDeletedError, ItemNotFoundError, NotFoundError, PinNotOwnedError
 from itd.models.file import File
 from itd.models.pin import Pin
 from itd.models.poll import NewPoll
@@ -172,23 +181,109 @@ class Nickname(BaseModel):
         return self.label
 
 
-class EventProfileWindow(ITDBaseModel):
-    _id: UUID
+def _item_id(item: EventItem | UUID | str) -> UUID:
+    """ID предмета из инвентаря: можно передать и сам предмет, и его id"""
+    return to_uuid(item.id if isinstance(item, EventItem) else item)
+
+
+def _take_item(client: Client, item: 'EventItem | UUID | str | None', type: EventItemType) -> UUID:
+    """Предмет для действия: переданный или первый подходящий из инвентаря"""
+    if item is not None:
+        return _item_id(item)
+    return _item_id(client.user.take_event_item(type))
+
+
+def _anchor(anchor: 'EventAnchor | dict | None') -> dict | None:
+    """Якорь для апи: модель или уже готовый dict"""
+    if anchor is None or isinstance(anchor, dict):
+        return anchor
+    return anchor.model_dump(mode='json', by_alias=True, exclude_none=True)
+
+
+class _EventProfilePart(ITDBaseModel):
+    """Часть профиля события: знает профиль, в котором находится (его ставит EventProfile._post_refresh)"""
+
+    _profile: 'EventProfile | None' = None
+
+    @property
+    def profile(self) -> 'EventProfile':
+        if self._profile is None:
+            raise ValueError(f'{self.__class__.__name__} is not bound to a profile - get it from User.event_profile')
+        return self._profile
+
+
+class EventProfileWindow(_EventProfilePart):
     broken: bool = False
     asset: str | None = None
     broken_at: datetime | None = Field(None, alias='brokenAt')
 
-    def break_window(self, item: UUID, client: Client | None = None):  # "break" busy
-        self.broken_at = break_event_window(client or self.client, str(self._id), str(item)).json()['window']['brokenAt']
+    def break_window(self, item: EventItem | UUID | str | None = None, client: Client | None = None):  # "break" busy
+        """Разбить окно камнем
+
+        Args:
+            item (EventItem | UUID | str | None, optional): Камень из инвентаря. None - взять первый камень оттуда. Defaults to None.
+            client (Client | None, optional): Клиент. Defaults to None.
+        """
+        client = client or self.client
+        window = break_event_window(client, self.profile.id, _take_item(client, item, EventItemType.WINDOW)).json()['window']
+        self.broken_at = parse_datetime(window['brokenAt'])
         self.broken = True
-        self.asset = 'window_broken'
+        self.asset = window.get('asset', 'window_broken')
+        client.user.forget_event_inventory()  # камень потрачен
 
 
-class EventProfileCurtains(ITDBaseModel):
+class EventProfileCurtains(_EventProfilePart):
     amount: int = Field(alias='fund')
     goal: int = 100
     available: bool = Field(False, alias='hasCuratins')
     closed: bool = False
+
+    def donate(self, amount: int, client: Client | None = None) -> int:
+        """Скинуться на шторы
+
+        Args:
+            amount (int): Сколько скинуть (с баланса события).
+            client (Client | None, optional): Клиент. Defaults to None.
+
+        Returns:
+            int: Сколько собрано (локально - точное значение придет при обновлении профиля)
+        """
+        donate_event_curtains(client or self.client, self.profile.id, amount)
+        self.amount += amount
+        if self.amount >= self.goal:
+            self.available = True
+        return self.amount
+
+    def claim(self, client: Client | None = None) -> None:
+        """Забрать шторы, когда на них собрали"""
+        claim_event_curtains(client or self.client, self.profile.id)
+        self.available = True
+
+    def set(self, closed: bool, client: Client | None = None) -> bool:
+        """Закрыть или открыть шторы
+
+        Args:
+            closed (bool): Закрыты ли.
+            client (Client | None, optional): Клиент. Defaults to None.
+
+        Returns:
+            bool: Состояние штор
+        """
+        set_event_curtains(client or self.client, self.profile.id, closed)
+        self.closed = closed
+        return self.closed
+
+    def close(self, client: Client | None = None) -> bool:
+        """Закрыть шторы"""
+        return self.set(True, client)
+
+    def open(self, client: Client | None = None) -> bool:
+        """Открыть шторы"""
+        return self.set(False, client)
+
+    def toggle(self, client: Client | None = None) -> bool:
+        """Переключить шторы"""
+        return self.set(not self.closed, client)
 
 
 class EventAnchor(BaseModel):
@@ -196,7 +291,7 @@ class EventAnchor(BaseModel):
     id: UUID | None = None
 
 
-class EventSticker(ITDBaseModel):
+class EventSticker(_EventProfilePart):
     id: UUID
     type: Literal['sticker'] = Field(alias='kind')
     asset: str
@@ -209,6 +304,25 @@ class EventSticker(ITDBaseModel):
     anchor: EventAnchor
     created_at: datetime = Field(alias='createdAt')
     author: UUID = Field(alias='createdBy')
+
+    def erase(self, client: Client | None = None) -> None:
+        """Стереть стикер ластиком (ластик апи выбирает само)"""
+        client = client or self.client
+        erase_event_sticker(client, self.profile.id, self.id)
+        if self in self.profile.stickers:
+            self.profile.stickers.remove(self)
+        client.user.forget_event_inventory()  # ластик потрачен
+
+    def __str__(self) -> str:
+        return self.asset
+
+    def __hash__(self):
+        return int(self.id)
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, EventSticker):
+            return self.id == other.id
+        return False
 
 
 class EventBalloon(BaseModel):
@@ -237,10 +351,96 @@ class EventProfile(ITDBaseModel):
         super().__init__(client=client)
         self.id = to_uuid(id)
         self._extra_context = {'id': id}
-        self.window._id = self.id
 
     def _refresh(self, client: Client):
         return get_event_profile(client, self.id).json()
+
+    def _post_refresh(self, context: dict = {}):
+        # окно, шторы и стикеры сами ходят в апи, поэтому им нужен профиль. is_loaded - чтобы не дернуть refresh, если части в данных не было
+        if self.is_loaded('window'):
+            self.window._profile = self
+        if self.is_loaded('curtains'):
+            self.curtains._profile = self
+        if self.is_loaded('stickers'):
+            for sticker in self.stickers:
+                sticker._profile = self
+
+    def place_sticker(
+        self,
+        item: EventItem | UUID | str | None = None,
+        x: float = 0.5,
+        y: float = 0.5,
+        anchor: EventAnchor | dict | None = None,
+        client: Client | None = None
+    ) -> EventSticker | None:
+        """Наклеить стикер на профиль
+
+        Args:
+            item (EventItem | UUID | str | None, optional): Стикер из инвентаря. None - взять первый стикер оттуда. Defaults to None.
+            x (float, optional): Координата по горизонтали (0-1). Defaults to 0.5.
+            y (float, optional): Координата по вертикали (0-1). Defaults to 0.5.
+            anchor (EventAnchor | dict | None, optional): К чему приклеить (баннер, шапка профиля, пост). None - как решит апи. Defaults to None.
+            client (Client | None, optional): Клиент. Defaults to None.
+
+        Returns:
+            EventSticker | None: Наклеенный стикер (None, если апи не вернул его - тогда вызовите refresh())
+        """
+        client = client or self.client
+        data = place_event_sticker(
+            client, self.id, _take_item(client, item, EventItemType.STICKER), x, y, _anchor(anchor)
+        ).json()
+        client.user.forget_event_inventory()  # стикер потрачен
+
+        placement = data.get('placement') or data.get('sticker')
+        if not placement:
+            return None
+
+        sticker = EventSticker.from_dict(placement, client=client)
+        sticker._profile = self
+        self.stickers.append(sticker)
+        return sticker
+
+    def throw_balloon(
+        self,
+        item: EventItem | UUID | str | None = None,
+        x: float = 0.5,
+        y: float = 0.5,
+        anchor: EventAnchor | dict | None = None,
+        client: Client | None = None
+    ) -> EventBalloon | None:
+        """Кинуть в профиль шар с водой
+
+        Args:
+            item (EventItem | UUID | str | None, optional): Шар из инвентаря. None - взять первый шар оттуда. Defaults to None.
+            x (float, optional): Координата по горизонтали (0-1). Defaults to 0.5.
+            y (float, optional): Координата по вертикали (0-1). Defaults to 0.5.
+            anchor (EventAnchor | dict | None, optional): Куда кидать. Defaults to None.
+            client (Client | None, optional): Клиент. Defaults to None.
+
+        Returns:
+            EventBalloon | None: Пятно от шара (None, если апи не вернул его - тогда вызовите refresh())
+        """
+        client = client or self.client
+        data = place_event_balloons(
+            client, self.id, _take_item(client, item, EventItemType.BALLOON), x, y, _anchor(anchor)
+        ).json()
+        client.user.forget_event_inventory()  # шар потрачен
+
+        balloon = data.get('balloon') or data.get('stain')
+        if not balloon:
+            return None
+
+        balloon = EventBalloon.model_validate(balloon)
+        self.balloons.append(balloon)
+        return balloon
+
+    def claim_fart(self, client: Client | None = None) -> dict:
+        """Забрать пердушку с профиля (POST profiles/{id}/claim)
+
+        Returns:
+            dict: Ответ апи
+        """
+        return get_event_profile_fart(client or self.client, self.id).json()
 
 
 class EventItem(BaseModel):
@@ -639,6 +839,62 @@ class Me(_UserBase):
     @cached_property
     def event_correctors_count(self) -> int:
         return get_event_correctors_inventory(self.client).json()['data']['events'][0]['balance']
+
+    def take_event_item(self, type: EventItemType) -> EventItem:
+        """Найти в инвентаре предмет нужного вида
+
+        Предметы разных видов лежат в одном списке, а действия принимают только свой вид (камень для окна, ластик для стикера итд),
+        поэтому брать первый попавшийся (`event_inventory[0]`) нельзя - апи ответит ItemNotFoundError.
+
+        Args:
+            type (EventItemType): Вид предмета.
+
+        Raises:
+            ItemNotFoundError: Предмета такого вида в инвентаре нет.
+
+        Returns:
+            EventItem: Предмет
+        """
+        item = next((item for item in self.event_inventory if item.type == type), None)
+        if item is None:
+            raise ItemNotFoundError(type.value)
+        return item
+
+    def event_items(self, type: EventItemType) -> list[EventItem]:
+        """Все предметы одного вида из инвентаря
+
+        Args:
+            type (EventItemType): Вид предмета.
+
+        Returns:
+            list[EventItem]: Предметы
+        """
+        return [item for item in self.event_inventory if item.type == type]
+
+    def forget_event_inventory(self) -> None:
+        """Забыть загруженный инвентарь - при следующем обращении он загрузится заново
+
+        Нужно потому, что `event_inventory` кеширован, а предметы тратятся: после действия в кеше остаются уже потраченные.
+        SDK вызывает это сам после своих действий.
+        """
+        self.__dict__.pop('event_inventory', None)
+
+    @cached_property
+    def event_nicknames(self) -> list[Nickname]:
+        """Никнеймы события, которые у вас есть"""
+        data = get_my_event_nicknames(self.client).json()
+        return [Nickname.model_validate(nickname) for nickname in data.get('nicknames') or data.get('forms') or []]  # ! форма ответа не проверена
+
+    def set_event_nickname(self, nickname: Nickname | str | None, client: Client | None = None) -> None:
+        """Выбрать активный никнейм события
+
+        Args:
+            nickname (Nickname | str | None): Никнейм или его id. None - снять никнейм.
+            client (Client | None, optional): Клиент. Defaults to None.
+        """
+        set_event_nickname(client or self.client, nickname.id if isinstance(nickname, Nickname) else nickname)
+        if nickname is None or isinstance(nickname, Nickname):
+            self.nickname = nickname
 
 
 class Followers(ITDList[User]):

@@ -5,6 +5,7 @@ from uuid import UUID
 
 from itd.core.request import endpoint
 from itd.enums import AuthLevel
+from itd.exceptions import ItemNotFoundError
 
 if TYPE_CHECKING:
     from itd.core.client import Client
@@ -92,7 +93,7 @@ def get_profile_avatar(client: Client): ...
 def delete_profile_avatar(client: Client): ...
 
 
-@endpoint('post', 'v1/aliceai/profiles/{id}/placements')
+@endpoint('post', 'v1/aliceai/profiles/{id}/placements', ItemNotFoundError())
 def place_event_sticker(client: Client, id: UUID, item_id: UUID, x: float, y: float, anchor: dict | None = None):
     data: dict = {'inventoryItemId': str(item_id), 'x': x, 'y': y}
     if anchor:
@@ -100,7 +101,7 @@ def place_event_sticker(client: Client, id: UUID, item_id: UUID, x: float, y: fl
     return data
 
 
-@endpoint('post', 'v1/aliceai/profiles/{id}/balloons')
+@endpoint('post', 'v1/aliceai/profiles/{id}/balloons', ItemNotFoundError())
 def place_event_balloons(client: Client, id: UUID, item_id: UUID, x: float, y: float, anchor: dict | None = None):
     data: dict = {'inventoryItemId': str(item_id), 'x': x, 'y': y}
     if anchor:
@@ -108,12 +109,12 @@ def place_event_balloons(client: Client, id: UUID, item_id: UUID, x: float, y: f
     return data
 
 
-@endpoint('post', 'v1/aliceai/profiles/{id}/window/break')
+@endpoint('post', 'v1/aliceai/profiles/{id}/window/break', ItemNotFoundError())
 def break_event_window(client: Client, id: UUID, item_id: UUID):
     return {'inventoryItemId': str(item_id)}
 
 
-@endpoint('post', 'v1/aliceai/profiles/{id}/placements/{sticker_id}/erase')
+@endpoint('post', 'v1/aliceai/profiles/{id}/placements/{sticker_id}/erase', ItemNotFoundError())
 def erase_event_sticker(client: Client, id: UUID, sticker_id: UUID): ...
 
 

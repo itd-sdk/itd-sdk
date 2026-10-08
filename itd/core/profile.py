@@ -51,13 +51,13 @@ class Profile(BaseModel):
     def flush(self):
         assert self._file
         self.updated_at = datetime.now()
-        if self._file.name == 'no-auth':
+        if self._file.stem == 'no-auth':  # stem, а не name: в name есть .json, поэтому профиль без авторизации все равно попадал на диск
             return
         self._file.write_text(dumps(self.model_dump(mode='json')))
 
     def update(self):
         assert self._file
-        if self._file.name == 'no-auth':
+        if self._file.stem == 'no-auth':
             return False
         new = self.model_validate(loads(self._file.read_text()))
         for field in Profile.model_fields:

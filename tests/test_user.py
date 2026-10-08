@@ -45,7 +45,7 @@ def test_not_loaded_field_still_refreshes(default_client, monkeypatch):
     uid = uuid4()
     calls = []
 
-    def fake_fetch(client, method, url, params={}, files={}, send_token=True):
+    def fake_fetch(client, method, url, params={}, files={}, sse=False):
         calls.append(url)
         return make_response(200, {'id': str(uid), 'username': 'example', 'displayName': 'Example'})
 

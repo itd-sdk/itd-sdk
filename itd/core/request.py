@@ -240,9 +240,12 @@ def api_wrapper(*exceptions: ITDException):
                 if exception is not None:
                     # token is checked before the request, but server still can reject it (clock skew, revoked session) - refresh and repeat the request once, before callbacks
                     if isinstance(exception, (AccessTokenExpiredError, InvalidAccessTokenError)) and not access_reauthed and not client._credtest:
+                        if client._profile.access_data and not client._profile.access_data.is_expired:
+                            l.warning('%s on %s: token is alive by local clock, but server rejected it (clock skew or revoked session)',
+                                      exception.__class__.__name__, name)
                         client._profile.access_valid = False
                         client._profile.flush()
-                        if name != 'refresh_token':
+                        if name != 'refresh_token' and client.auth_level >= AuthLevel.REFRESH:  # без refresh token обновлять нечем - пусть падает с AccessTokenExpiredError
                             access_reauthed = True
                             l.warning('%s on %s: refresh access_token and retry', exception.__class__.__name__, name)
                             client.refresh_auth()
@@ -255,7 +258,7 @@ def api_wrapper(*exceptions: ITDException):
                     ):
                         client._profile.refresh_valid = False
                         client._profile.flush()
-                        if name != 'sign_in':
+                        if name != 'sign_in' and client.auth_level >= AuthLevel.LOGIN:  # заново войти можно только с логином и паролем
                             refresh_reauthed = True
                             l.warning('%s on %s: refresh refresh_token and retry', exception.__class__.__name__, name)
                             client.login()
@@ -306,7 +309,20 @@ def api_wrapper(*exceptions: ITDException):
     return decorator
 
 
+@dataclass
+class Endpoint:
+    """Объявление эндпоинта - лежит в атрибуте endpoint у функции, которую вернул декоратор"""
+
+    method: str
+    url: str
+    exceptions: tuple[ITDException, ...] = ()
+    sse: bool = False
+    level: AuthLevel = AuthLevel.ACCESS
+
+
 def endpoint(method: str, url: str, *exceptions: ITDException, sse: bool = False, level: AuthLevel = AuthLevel.ACCESS):
+    declaration = Endpoint(method, url, exceptions, sse, level)
+
     def decorator(func: Callable[..., dict | Payload | None]):
         params = signature(func) if '{' in url else None  # аргументы нужно связывать, только если url шаблонный
 
@@ -325,6 +341,8 @@ def endpoint(method: str, url: str, *exceptions: ITDException, sse: bool = False
 
             return client.request(method, path, payload.params, payload.files, sse=sse, level=level)
 
-        return request if sse else api_wrapper(*exceptions)(request)
+        wrapped = request if sse else api_wrapper(*exceptions)(request)
+        wrapped.endpoint = declaration
+        return wrapped
 
     return decorator

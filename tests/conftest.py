@@ -47,8 +47,8 @@ def fetches(monkeypatch):
     """Перехватить запросы вместо отправки"""
     calls = []
 
-    def fake_fetch(client, method, url, params={}, files={}, send_token=True):
-        calls.append({'method': method, 'url': url, 'params': params, 'files': files, 'send_token': send_token})
+    def fake_fetch(client, method, url, params={}, files={}, sse=False):
+        calls.append({'method': method, 'url': url, 'params': params, 'files': files})
         return make_response(200, {'data': {}})
 
     monkeypatch.setattr('itd.core.client.fetch', fake_fetch)
@@ -61,7 +61,7 @@ def refreshes(monkeypatch):
     calls = []
 
     def fake_refresh_token(client):
-        calls.append(client.access_token)
+        calls.append(client._profile.access)
         return make_response(200, {'accessToken': make_token(900)})
 
     monkeypatch.setattr('itd.core.client.refresh_token', fake_refresh_token)
