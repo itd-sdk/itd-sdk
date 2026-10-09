@@ -837,7 +837,7 @@ wheels = [
 
 [[package]]
 name = "itd-sdk"
-version = "2.10.0.dev1"
+version = "2.10.0"
 source = { editable = "." }
 dependencies = [
     { name = "lxml" },
