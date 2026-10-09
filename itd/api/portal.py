@@ -24,7 +24,12 @@ def get_event_profile(client: Client, id: UUID): ...
 
 
 @endpoint('post', 'v1/aliceai/profiles/{id}/claim')
-def get_event_profile_fart(client: Client, id: UUID): ...
+def event_profile_claim_fart(client: Client, id: UUID): ...
+
+
+@endpoint('post', 'v1/aliceai/profiles/{id}/cushion', ItemNotFoundError())
+def event_profile_put_fart(client: Client, id: UUID, item_id: UUID, x: float, y: float):
+    return {'inventoryItemId': str(item_id), 'anchorKind': 'profile_header', 'anchorId': None, 'x': x, 'y': y}
 
 
 @endpoint('get', 'event-nicknames')
