@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from datetime import datetime
 from functools import cache, cached_property
-from typing import TYPE_CHECKING, Any, Iterator, Literal, SupportsIndex, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Annotated, Any, Iterator, Literal, SupportsIndex, TypeVar, cast, overload
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator
 from pydantic.fields import FieldInfo
 from pydantic_core.core_schema import with_info_plain_validator_function
 
 from itd.core.default import get_default_client
 from itd.core.logger import get_logger
+from itd.core.utils import parse_datetime
 from itd.enums import ALL, BATCH, All, Batch, LoadStatus
 
 if TYPE_CHECKING:
@@ -374,3 +376,6 @@ class ITDList(ITDBaseModel, list[T]):
         super().clear()
         self.cursor = None
         self.has_more = True
+
+
+ITDdatetime = Annotated[datetime, BeforeValidator(parse_datetime)]

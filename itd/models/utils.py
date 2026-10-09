@@ -14,6 +14,8 @@ from itd.models.span import Span
 
 if TYPE_CHECKING:
     from itd.core.config import Config
+    from itd.models.post import Corrector, RedPen
+
 
 converter.STANDARD_OPTIONS = pyromark.Options.ENABLE_STRIKETHROUGH  # ty: ignore[invalid-assignment]
 
@@ -100,3 +102,50 @@ def parse_md(text: str) -> tuple[str, list[Span]]:
     """
     text, spans = convert(text, latex_escape=False)
     return text, [Span.model_validate(span, from_attributes=True) for span in spans]
+
+
+def utf16_slice(text: str, start: int, end: int) -> str:
+    encoded = text.encode('utf-16-le')
+    return encoded[start * 2 : end * 2].decode('utf-16-le', errors='replace')
+
+
+def visible_marks(marks: 'list[Corrector]', corrections: 'list[RedPen]' = []) -> 'list[Corrector]':
+    """Видимые замазки
+    Если на тот же фрагмент позже легла правка красной ручкой, сайт показывает правку, а не замазку.
+
+    Args:
+        marks (list[Corrector]): Замазки.
+        corrections (list[RedPen], optional): Правки красной ручкой. Defaults to [].
+
+    Returns:
+        list[CorrectorMark]: Видимые замазки
+    """
+    newest_pen = {}
+    for correction in corrections:
+        key = (correction.start, correction.end)
+        newest_pen[key] = max(newest_pen.get(key, 0), correction.created_at.timestamp())
+    return [mark for mark in marks if (mark.start, mark.end) not in newest_pen or mark.created_at.timestamp() > newest_pen[(mark.start, mark.end)]]
+
+
+def apply_marks(text: str, marks: 'list[Corrector]', mark_char: str = '■') -> str:
+    """Текст с замазками: замазанные символы заменены на `mark_char` (пробелы остаются)
+    Args:
+        text (str): Исходный текст
+        marks (list[Corrector]): Замазки
+        mark_char (str, optional): Чем заменять замазанные символы. Defaults to '■'.
+
+    Returns:
+        str: Текст с замазками
+    """
+    length = len(text.encode('utf-16-le')) // 2
+    result = []
+    position = 0
+    for mark in sorted(marks, key=lambda mark: (mark.start, mark.end)):
+        start = max(mark.start, position)  # замазки могут пересекаться
+        if start >= mark.end:
+            continue
+        result.append(utf16_slice(text, position, start))
+        result.append(''.join(char if char.isspace() else mark_char for char in utf16_slice(text, start, mark.end)))
+        position = mark.end
+    result.append(utf16_slice(text, position, length))
+    return ''.join(result)

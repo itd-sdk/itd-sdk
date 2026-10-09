@@ -48,10 +48,6 @@ class Poll(ITDBaseModel):
     voted_option_ids: list[UUID] = Field([], alias='votedOptionIds')
     total_votes: int = Field(0, alias='totalVotes')
 
-    def _post_refresh(self, context: dict = {}):
-        for option in self.options:  # опция знает только свой id, а голосовать надо в пост
-            option._post_id = self.post_id
-
     def __str__(self) -> str:
         return self.question
 

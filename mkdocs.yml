@@ -85,6 +85,7 @@ nav:
         - api/hashtag.md
         - api/pin.md
         - api/poll.md
+        - api/correction.md
         - api/clan.md
         - api/report.md
         - api/span.md
