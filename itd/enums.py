@@ -7,7 +7,7 @@ class EventItemType(Enum):
     ERASER = 'eraser'
     WINDOW = 'window'
     BALLOON = 'stain'
-    CUSHION = 'whoopee_cushion'
+    FART = 'whoopee_cushion'
 
 
 class AnnouncementButtonStyle(Enum):

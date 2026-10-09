@@ -13,10 +13,11 @@ from itd.api.portal import (
     claim_event_curtains,
     donate_event_curtains,
     erase_event_sticker,
+    event_profile_claim_fart,
+    event_profile_put_fart,
     get_event_balance,
     get_event_correctors_inventory,
     get_event_profile,
-    get_event_profile_fart,
     get_event_red_pens_inventory,
     get_my_event_inventory,
     get_my_event_nicknames,
@@ -181,28 +182,12 @@ class Nickname(BaseModel):
         return self.label
 
 
-def _item_id(item: EventItem | UUID | str) -> UUID:
-    """ID предмета из инвентаря: можно передать и сам предмет, и его id"""
+def _take_item(client: Client, item: 'EventItem | UUID | str | None', type: EventItemType) -> UUID:
+    item = item or client.user.take_event_item(type)
     return to_uuid(item.id if isinstance(item, EventItem) else item)
 
 
-def _take_item(client: Client, item: 'EventItem | UUID | str | None', type: EventItemType) -> UUID:
-    """Предмет для действия: переданный или первый подходящий из инвентаря"""
-    if item is not None:
-        return _item_id(item)
-    return _item_id(client.user.take_event_item(type))
-
-
-def _anchor(anchor: 'EventAnchor | dict | None') -> dict | None:
-    """Якорь для апи: модель или уже готовый dict"""
-    if anchor is None or isinstance(anchor, dict):
-        return anchor
-    return anchor.model_dump(mode='json', by_alias=True, exclude_none=True)
-
-
 class _EventProfilePart(ITDBaseModel):
-    """Часть профиля события: знает профиль, в котором находится (его ставит EventProfile._post_refresh)"""
-
     _profile: 'EventProfile | None' = None
 
     @property
@@ -218,10 +203,10 @@ class EventProfileWindow(_EventProfilePart):
     broken_at: datetime | None = Field(None, alias='brokenAt')
 
     def break_window(self, item: EventItem | UUID | str | None = None, client: Client | None = None):  # "break" busy
-        """Разбить окно камнем
+        """Разбить окно портфелем
 
         Args:
-            item (EventItem | UUID | str | None, optional): Камень из инвентаря. None - взять первый камень оттуда. Defaults to None.
+            item (EventItem | UUID | str | None, optional): ID предмета. None - взять первый. Defaults to None.
             client (Client | None, optional): Клиент. Defaults to None.
         """
         client = client or self.client
@@ -229,7 +214,7 @@ class EventProfileWindow(_EventProfilePart):
         self.broken_at = parse_datetime(window['brokenAt'])
         self.broken = True
         self.asset = window.get('asset', 'window_broken')
-        client.user.forget_event_inventory()  # камень потрачен
+        client.user.invalidate_event_inventory()
 
 
 class EventProfileCurtains(_EventProfilePart):
@@ -306,12 +291,12 @@ class EventSticker(_EventProfilePart):
     author: UUID = Field(alias='createdBy')
 
     def erase(self, client: Client | None = None) -> None:
-        """Стереть стикер ластиком (ластик апи выбирает само)"""
+        """Стереть стикер ластиком"""
         client = client or self.client
         erase_event_sticker(client, self.profile.id, self.id)
         if self in self.profile.stickers:
             self.profile.stickers.remove(self)
-        client.user.forget_event_inventory()  # ластик потрачен
+        client.user.invalidate_event_inventory()
 
     def __str__(self) -> str:
         return self.asset
@@ -336,6 +321,14 @@ class EventBalloon(BaseModel):
     anchor: EventAnchor
 
 
+class EventFart(BaseModel):
+    sound: bool = Field(False, alias='show')
+    id: UUID
+    x: float
+    y: float
+    expires_at: datetime = Field(alias='expiresAt')
+
+
 class EventProfile(ITDBaseModel):
     id: UUID = Field(alias='profileId')
     revision: int = Field(alias='rev')
@@ -356,7 +349,6 @@ class EventProfile(ITDBaseModel):
         return get_event_profile(client, self.id).json()
 
     def _post_refresh(self, context: dict = {}):
-        # окно, шторы и стикеры сами ходят в апи, поэтому им нужен профиль. is_loaded - чтобы не дернуть refresh, если части в данных не было
         if self.is_loaded('window'):
             self.window._profile = self
         if self.is_loaded('curtains'):
@@ -365,66 +357,44 @@ class EventProfile(ITDBaseModel):
             for sticker in self.stickers:
                 sticker._profile = self
 
-    def place_sticker(
-        self,
-        item: EventItem | UUID | str | None = None,
-        x: float = 0.5,
-        y: float = 0.5,
-        anchor: EventAnchor | dict | None = None,
-        client: Client | None = None
-    ) -> EventSticker | None:
+    def place_sticker(self, item: EventItem | UUID | str | None = None, x: float = 0.5, y: float = 0.5, client: Client | None = None) -> EventSticker | None:
         """Наклеить стикер на профиль
 
         Args:
             item (EventItem | UUID | str | None, optional): Стикер из инвентаря. None - взять первый стикер оттуда. Defaults to None.
             x (float, optional): Координата по горизонтали (0-1). Defaults to 0.5.
             y (float, optional): Координата по вертикали (0-1). Defaults to 0.5.
-            anchor (EventAnchor | dict | None, optional): К чему приклеить (баннер, шапка профиля, пост). None - как решит апи. Defaults to None.
             client (Client | None, optional): Клиент. Defaults to None.
 
         Returns:
-            EventSticker | None: Наклеенный стикер (None, если апи не вернул его - тогда вызовите refresh())
+            EventSticker | None: Наклеенный стикер
         """
         client = client or self.client
-        data = place_event_sticker(
-            client, self.id, _take_item(client, item, EventItemType.STICKER), x, y, _anchor(anchor)
-        ).json()
-        client.user.forget_event_inventory()  # стикер потрачен
+        data = place_event_sticker(client, self.id, _take_item(client, item, EventItemType.STICKER), x, y, 'profile_header').json()
+        client.user.invalidate_event_inventory()
 
-        placement = data.get('placement') or data.get('sticker')
-        if not placement:
-            return None
+        sticker = data.get('placement') or data.get('sticker')
 
-        sticker = EventSticker.from_dict(placement, client=client)
+        sticker = EventSticker.from_dict(sticker, client=client)
         sticker._profile = self
         self.stickers.append(sticker)
         return sticker
 
-    def throw_balloon(
-        self,
-        item: EventItem | UUID | str | None = None,
-        x: float = 0.5,
-        y: float = 0.5,
-        anchor: EventAnchor | dict | None = None,
-        client: Client | None = None
-    ) -> EventBalloon | None:
+    def throw_balloon(self, item: EventItem | UUID | str | None = None, x: float = 0.5, y: float = 0.5, client: Client | None = None) -> EventBalloon | None:
         """Кинуть в профиль шар с водой
 
         Args:
             item (EventItem | UUID | str | None, optional): Шар из инвентаря. None - взять первый шар оттуда. Defaults to None.
             x (float, optional): Координата по горизонтали (0-1). Defaults to 0.5.
             y (float, optional): Координата по вертикали (0-1). Defaults to 0.5.
-            anchor (EventAnchor | dict | None, optional): Куда кидать. Defaults to None.
             client (Client | None, optional): Клиент. Defaults to None.
 
         Returns:
             EventBalloon | None: Пятно от шара (None, если апи не вернул его - тогда вызовите refresh())
         """
         client = client or self.client
-        data = place_event_balloons(
-            client, self.id, _take_item(client, item, EventItemType.BALLOON), x, y, _anchor(anchor)
-        ).json()
-        client.user.forget_event_inventory()  # шар потрачен
+        data = place_event_balloons(client, self.id, _take_item(client, item, EventItemType.BALLOON), x, y, 'banner').json()
+        client.user.invalidate_event_inventory()
 
         balloon = data.get('balloon') or data.get('stain')
         if not balloon:
@@ -434,13 +404,17 @@ class EventProfile(ITDBaseModel):
         self.balloons.append(balloon)
         return balloon
 
-    def claim_fart(self, client: Client | None = None) -> dict:
-        """Забрать пердушку с профиля (POST profiles/{id}/claim)
+    @cached_property
+    def fart(self) -> EventFart | None:
+        fart = event_profile_claim_fart(self.client, self.id).json()
+        if fart.get('anchorKind'):
+            return EventFart.model_validate(fart)
 
-        Returns:
-            dict: Ответ апи
-        """
-        return get_event_profile_fart(client or self.client, self.id).json()
+    def put_fart(self, item: EventItem | UUID | str | None = None, x: float = 0.5, y: float = 0.5, client: Client | None = None):
+        client = client or self.client
+        id = event_profile_put_fart(client, self.id, _take_item(client, item, EventItemType.FART), x, y).json()['id']
+        client.user.invalidate_event_inventory()
+        return id
 
 
 class EventItem(BaseModel):
@@ -844,7 +818,7 @@ class Me(_UserBase):
         """Найти в инвентаре предмет нужного вида
 
         Предметы разных видов лежат в одном списке, а действия принимают только свой вид (камень для окна, ластик для стикера итд),
-        поэтому брать первый попавшийся (`event_inventory[0]`) нельзя - апи ответит ItemNotFoundError.
+        поэтому брать первый попавшийся (`event_inventory[0]`) нельзя - api ответит ItemNotFoundError.
 
         Args:
             type (EventItemType): Вид предмета.
@@ -871,7 +845,7 @@ class Me(_UserBase):
         """
         return [item for item in self.event_inventory if item.type == type]
 
-    def forget_event_inventory(self) -> None:
+    def invalidate_event_inventory(self) -> None:
         """Забыть загруженный инвентарь - при следующем обращении он загрузится заново
 
         Нужно потому, что `event_inventory` кеширован, а предметы тратятся: после действия в кеше остаются уже потраченные.

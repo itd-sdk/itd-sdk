@@ -407,12 +407,7 @@ class EventError(ITDException):
 
 class ItemNotFoundError(EventError):
     code = 'ITEM_UNAVAILABLE'
-    json_check = staticmethod(lambda json: isinstance(json.get('error'), dict) and json['error'].get('code') == 'ITEM_NOT_FOUND')
-    text = 'Inventory item is not found'
-
-    def __init__(self, type: str | None = None):
-        if type:  # для своей проверки инвентаря, до запроса
-            self.text = f'No {type} item in inventory'
+    text = 'Inventory item not found or wrong type'
 
 
 DEFAULT_ERRORS = (
