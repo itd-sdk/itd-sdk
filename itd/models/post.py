@@ -256,16 +256,13 @@ class Post(ITDBaseModel):
                 comment._post = self
         for attachment in self.attachments:
             attachment._post = self
-        # у репоста в контексте id репоста, а замазки оригинала относятся к самому оригиналу
-        corrector, red_pen = self.__dict__.get('corrector'), self.__dict__.get('red_pen')
-        if isinstance(corrector, CorrectorState):
-            corrector._post_id = self.id
-            for c in corrector.correctors:
-                c._post_id = self.id
-        if isinstance(red_pen, RedPenState):
-            red_pen._post_id = self.id
-            for claim in red_pen.claims:
-                claim._post_id = self.id
+
+        self.corrector._post_id = self.id
+        for c in self.corrector.correctors:
+            c._post_id = self.id
+        self.red_pen._post_id = self.id
+        for claim in self.red_pen.claims:
+            claim._post_id = self.id
 
     @classmethod
     def new(
