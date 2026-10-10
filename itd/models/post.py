@@ -257,6 +257,13 @@ class Post(ITDBaseModel):
         for attachment in self.attachments:
             attachment._post = self
 
+        self.corrector._post_id = self.id
+        for c in self.corrector.correctors:
+            c._post_id = self.id
+        self.red_pen._post_id = self.id
+        for claim in self.red_pen.claims:
+            claim._post_id = self.id
+
     @classmethod
     def new(
         cls,
@@ -311,6 +318,8 @@ class Post(ITDBaseModel):
     ) -> 'Post':
         context = dict(context or {})
         context.update({'source': source, 'source_context': source_context})
+        if isinstance(data, dict) and data.get('id'):
+            context['post_id'] = to_uuid(data['id'])  # нужен корректору и ручке при валидации
         instance = super().from_dict(data, context=context, client=client)
         instance._extra_context = {'source': source, 'source_context': source_context, 'post_id': instance.id}
         instance.source = source
