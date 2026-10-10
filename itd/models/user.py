@@ -451,7 +451,7 @@ class _UserBase(ITDBaseModel):
     id: UUID
     username: str
     display_name: str = Field(alias='displayName')
-    possible_url_avatar: str = Field(alias='avatar')  # url or emoji
+    possible_url_avatar: str = Field('', alias='avatar')  # url or emoji
     clan_avatar: str = Field('', alias='clanAvatar')  # always emoji
     verified: bool = False
     pin: Pin | None = None
