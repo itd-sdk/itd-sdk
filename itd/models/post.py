@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from time import sleep
 from typing import TYPE_CHECKING, Annotated, Literal, overload
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import BaseModel, BeforeValidator, Field, field_validator
 
@@ -106,7 +106,7 @@ class CorrectorState(ITDBaseModel):
         self.refresh()
 
     def apply(self, start: int, end: int, client: Client | None = None) -> Corrector:
-        apply_corrector(client or self.client, str(self._post_id), self.event_id, self.revision, start, end)
+        apply_corrector(client or self.client, str(self._post_id), self.event_id, self.revision, start, end, uuid4())
         self.refresh()
         assert self.my_corrector
         return self.my_corrector
@@ -188,7 +188,7 @@ class RedPenState(ITDBaseModel):
             c._post_id = self._post_id
 
     def apply(self, start: int, end: int, replacement: str, client: Client | None = None) -> RedPenClaim:
-        apply_red_pen(client or self.client, str(self._post_id), self.event_id, self.revision, start, end, replacement)
+        apply_red_pen(client or self.client, str(self._post_id), self.event_id, self.revision, start, end, replacement, uuid4())
         self.refresh()
         assert self.my_claim
         return self.my_claim
@@ -256,6 +256,16 @@ class Post(ITDBaseModel):
                 comment._post = self
         for attachment in self.attachments:
             attachment._post = self
+        # у репоста в контексте id репоста, а замазки оригинала относятся к самому оригиналу
+        corrector, red_pen = self.__dict__.get('corrector'), self.__dict__.get('red_pen')
+        if isinstance(corrector, CorrectorState):
+            corrector._post_id = self.id
+            for c in corrector.correctors:
+                c._post_id = self.id
+        if isinstance(red_pen, RedPenState):
+            red_pen._post_id = self.id
+            for claim in red_pen.claims:
+                claim._post_id = self.id
 
     @classmethod
     def new(
@@ -311,6 +321,8 @@ class Post(ITDBaseModel):
     ) -> 'Post':
         context = dict(context or {})
         context.update({'source': source, 'source_context': source_context})
+        if isinstance(data, dict) and data.get('id'):
+            context['post_id'] = to_uuid(data['id'])  # нужен корректору и ручке при валидации
         instance = super().from_dict(data, context=context, client=client)
         instance._extra_context = {'source': source, 'source_context': source_context, 'post_id': instance.id}
         instance.source = source
