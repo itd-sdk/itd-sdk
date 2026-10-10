@@ -1,4 +1,4 @@
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
@@ -108,13 +108,13 @@ def test_apply_marks(mock_client):
     assert apply_marks('a b', []) == 'a b'
 
 
-def test_apply_corrector_sends_operation_id(post, mock_client):
+def test_apply_corrector_calls_api(post, mock_client):
     with patch('itd.models.post.apply_corrector') as apply, patch('itd.models.post.CorrectorState.refresh'):
         try:
             post.apply_corrector(0, 7)
         except AssertionError:  # своей замазки в данных нет - refresh замокан
             pass
-    apply.assert_called_once_with(mock_client, POST_ID, 'aliceai', 'r1', 0, 7, ANY)
+    apply.assert_called_once_with(mock_client, POST_ID, 'aliceai', 'r1', 0, 7)
 
 
 def test_apply_endpoint_payload():
@@ -122,5 +122,8 @@ def test_apply_endpoint_payload():
 
     client = MagicMock()
     apply_corrector.__wrapped__(client, POST_ID, 'aliceai', 'r1', 0, 7)
-    payload = client.request.call_args.args[2]
-    assert payload['operationId'] and payload['revision'] == 'r1' and payload['postId'] == POST_ID
+    first = client.request.call_args.args[2]
+    apply_corrector.__wrapped__(client, POST_ID, 'aliceai', 'r1', 0, 7)
+    second = client.request.call_args.args[2]
+    assert first['revision'] == 'r1' and first['postId'] == POST_ID
+    assert first['operationId'] != second['operationId']  # новый на каждое применение
