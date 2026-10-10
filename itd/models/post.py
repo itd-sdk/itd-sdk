@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from time import sleep
 from typing import TYPE_CHECKING, Annotated, Literal, overload
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from pydantic import BaseModel, BeforeValidator, Field, field_validator
 
@@ -106,7 +106,7 @@ class CorrectorState(ITDBaseModel):
         self.refresh()
 
     def apply(self, start: int, end: int, client: Client | None = None) -> Corrector:
-        apply_corrector(client or self.client, str(self._post_id), self.event_id, self.revision, start, end, uuid4())
+        apply_corrector(client or self.client, str(self._post_id), self.event_id, self.revision, start, end)
         self.refresh()
         assert self.my_corrector
         return self.my_corrector
@@ -188,7 +188,7 @@ class RedPenState(ITDBaseModel):
             c._post_id = self._post_id
 
     def apply(self, start: int, end: int, replacement: str, client: Client | None = None) -> RedPenClaim:
-        apply_red_pen(client or self.client, str(self._post_id), self.event_id, self.revision, start, end, replacement, uuid4())
+        apply_red_pen(client or self.client, str(self._post_id), self.event_id, self.revision, start, end, replacement)
         self.refresh()
         assert self.my_claim
         return self.my_claim

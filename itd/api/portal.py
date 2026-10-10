@@ -125,21 +125,13 @@ def erase_event_sticker(client: Client, id: UUID, sticker_id: UUID): ...
 
 # operationId - ключ идемпотентности: сайт генерирует новый на каждое применение
 @endpoint('post', 'red-pens/apply')
-def apply_red_pen(client: Client, id: UUID, event_id: str, revision: str, start: int, end: int, replacement: str, operation_id: UUID | str | None = None):
-    return {
-        'postId': str(id),
-        'eventId': event_id,
-        'revision': revision,
-        'start': start,
-        'end': end,
-        'replacement': replacement,
-        'operationId': str(operation_id or uuid4()),
-    }
+def apply_red_pen(client: Client, id: UUID, event_id: str, revision: str, start: int, end: int, replacement: str):
+    return {'postId': str(id), 'eventId': event_id, 'revision': revision, 'start': start, 'end': end, 'replacement': replacement, 'operationId': str(uuid4())}
 
 
 @endpoint('post', 'correctors/apply')
-def apply_corrector(client: Client, id: UUID, event_id: str, revision: str, start: int, end: int, operation_id: UUID | str | None = None):
-    return {'postId': str(id), 'eventId': event_id, 'revision': revision, 'start': start, 'end': end, 'operationId': str(operation_id or uuid4())}
+def apply_corrector(client: Client, id: UUID, event_id: str, revision: str, start: int, end: int):
+    return {'postId': str(id), 'eventId': event_id, 'revision': revision, 'start': start, 'end': end, 'operationId': str(uuid4())}
 
 
 @endpoint('post', 'correctors/cancel')
