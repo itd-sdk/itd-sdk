@@ -141,6 +141,7 @@ class AttachType(Enum):
     IMAGE = 'image'
     VIDEO = 'video'
     MEDIA = 'media'
+    FILE = 'file'
 
 
 class PostsTab(Enum):

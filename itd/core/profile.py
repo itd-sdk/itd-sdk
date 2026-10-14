@@ -51,7 +51,7 @@ class Profile(BaseModel):
     def flush(self):
         assert self._file
         self.updated_at = datetime.now()
-        if self._file.stem == 'no-auth':  # stem, а не name: в name есть .json, поэтому профиль без авторизации все равно попадал на диск
+        if self._file.stem == 'no-auth':
             return
         self._file.write_text(dumps(self.model_dump(mode='json')))
 
