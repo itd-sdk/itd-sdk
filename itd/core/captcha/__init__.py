@@ -21,7 +21,7 @@ def get_turnstile(client: 'Client | None' = None, status=None) -> str:  # tuple[
     # provider = providers[provider_data['provider']]()
     if client and not client.config.captcha_solve:
         l.warning('captcha solving disabled')
-        iprint(l, 'solve captcha on other devices via `uv run itd captcha`, then paste result here')
+        iprint(l, 'solve captcha on other devices via `uv run itd-sdk captcha`, then paste result here')
         iprint(l, 'enter `continue` to force solve captcha on this device')
         if status:
             status.stop()
