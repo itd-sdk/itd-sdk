@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
+from itd.core.request import endpoint
 from itd.enums import PostsTab, UserPostSorting
 from itd.exceptions import (
     AlreadyRepostedError,
@@ -14,9 +15,9 @@ from itd.exceptions import (
     NotFoundError,
     NotPinnedError,
     RequiresSubscriptionError,
+    TargetUserBannedError,
     ValidationError
 )
-from itd.core.request import endpoint
 
 if TYPE_CHECKING:
     from itd.core.client import Client
@@ -103,7 +104,8 @@ def get_liked_posts(client: Client, username_or_id: str | UUID, cursor: datetime
     'get',
     'posts/user/{username_or_id}',
     ValidationError(),
-    NotFoundError('User', res_check=lambda res: res.status_code == 404 and res.text == 'NOT_FOUND')
+    NotFoundError('User', res_check=lambda res: res.status_code == 404 and res.text == 'NOT_FOUND'),
+    TargetUserBannedError()
 )
 def get_user_posts(
     client: Client,
