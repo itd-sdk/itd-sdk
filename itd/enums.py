@@ -195,7 +195,7 @@ class AccessType(Enum):
         return _ACCESS_TYPE_HIERARCHY.index(self) <= _ACCESS_TYPE_HIERARCHY.index(other)
 
 
-_ACCESS_TYPE_HIERARCHY = [AccessType.EVERYONE, AccessType.FOLLOWERS, AccessType.MUTUAL, AccessType.EVERYONE]  # 100% that hierarcy is spelled wrong
+_ACCESS_TYPE_HIERARCHY = [AccessType.NOBODY, AccessType.FOLLOWERS, AccessType.MUTUAL, AccessType.EVERYONE]  # 100% that hierarcy is spelled wrong
 
 
 class SpanType(Enum):
