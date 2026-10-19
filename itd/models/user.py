@@ -634,7 +634,7 @@ class User(_UserBase):
     def unfollow(self, client: Client | None = None) -> int:
         self.followers_count = unfollow(client or self.client, self._identifier).json()['followersCount']
         if (client or self.client) == self.client:
-            self.is_following = True
+            self.is_following = False
 
         return self.followers_count
 
