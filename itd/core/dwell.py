@@ -60,7 +60,7 @@ class DwellTracker(ITDBaseModel):
         self.interactions: list[InteractionEvent] = []
         self.seen_posts: set[UUID] = set()
         self.sid = uuid4()
-        self.timer: Timer | None = None
+        self.timer = Timer('dwell', self.client.config.dwell_send_interval, self.send, on_exit=self.send if self.client.config.dwell_save_on_quit else None)
 
     def send_views(self) -> bool:  # call on app visibilitychange
         """Отправить просмотры (api/v1/i) и очистить буффер
@@ -184,9 +184,8 @@ class DwellTracker(ITDBaseModel):
         self.send_interactions()
 
     def start(self):
-        self.timer = Timer('dwell', self.client.config.dwell_send_interval, self.send, on_exit=self.send if self.client.config.dwell_save_on_quit else None)
-        self.timer.start()
+        if self.client.config.dwell_enabled:
+            self.timer.start()
 
     def stop(self):
-        assert self.timer, 'start timer first'
         self.timer.stop(run_on_exit=self.client.config.dwell_save_on_quit)
