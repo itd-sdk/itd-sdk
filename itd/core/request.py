@@ -241,11 +241,16 @@ def api_wrapper(*exceptions: ITDException):
                     # token is checked before the request, but server still can reject it (clock skew, revoked session) - refresh and repeat the request once, before callbacks
                     if isinstance(exception, (AccessTokenExpiredError, InvalidAccessTokenError)) and not access_reauthed and not client._credtest:
                         if client._profile.access_data and not client._profile.access_data.is_expired:
-                            l.warning('%s on %s: token is alive by local clock, but server rejected it (clock skew or revoked session)',
-                                      exception.__class__.__name__, name)
+                            l.warning(
+                                '%s on %s: token is alive by local clock, but server rejected it (clock skew or revoked session)',
+                                exception.__class__.__name__,
+                                name
+                            )
                         client._profile.access_valid = False
                         client._profile.flush()
-                        if name != 'refresh_token' and client.auth_level >= AuthLevel.REFRESH:  # без refresh token обновлять нечем - пусть падает с AccessTokenExpiredError
+                        if (
+                            name != 'refresh_token' and client.auth_level >= AuthLevel.REFRESH
+                        ):  # без refresh token обновлять нечем - пусть падает с AccessTokenExpiredError
                             access_reauthed = True
                             l.warning('%s on %s: refresh access_token and retry', exception.__class__.__name__, name)
                             client.refresh_auth()
@@ -342,7 +347,7 @@ def endpoint(method: str, url: str, *exceptions: ITDException, sse: bool = False
             return client.request(method, path, payload.params, payload.files, sse=sse, level=level)
 
         wrapped = request if sse else api_wrapper(*exceptions)(request)
-        wrapped.endpoint = declaration
+        wrapped.endpoint = declaration  # ty: ignore
         return wrapped
 
     return decorator
