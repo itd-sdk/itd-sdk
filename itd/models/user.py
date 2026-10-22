@@ -451,8 +451,8 @@ class _UserBase(ITDBaseModel):
     id: UUID
     username: str
     display_name: str = Field(alias='displayName')
-    possible_url_avatar: str = Field('', alias='avatar')  # url or emoji
-    clan_avatar: str = Field('', alias='clanAvatar')  # always emoji
+    possible_url_avatar: str = Field('?', alias='avatar')  # url or emoji
+    clan_avatar: str = Field('?', alias='clanAvatar')  # always emoji
     verified: bool = False
     pin: Pin | None = None
     banner: str | None = None
@@ -473,6 +473,14 @@ class _UserBase(ITDBaseModel):
 
     def _refresh(self, *, client: Client):
         return get_user(client, self._identifier).json()
+
+    def _fill_from_data(self, data: dict, *, context: dict | None = None):
+        # https://итд.com/@ebatel no avatar
+        if data.get('avatar', '') is None:
+            del data['avatar']
+        if data.get('clanAvatar', '') is None:
+            del data['clanAvatar']
+        super()._fill_from_data(data, context=context)
 
     @cached_property
     def posts(self) -> UserPosts:
