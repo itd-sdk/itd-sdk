@@ -674,7 +674,7 @@ wheels = [
 
 [[package]]
 name = "itd-sdk"
-version = "2.10.3"
+version = "2.11.0"
 source = { editable = "." }
 dependencies = [
     { name = "lxml" },
@@ -724,7 +724,7 @@ requires-dist = [
     { name = "lxml", specifier = ">=6.1.1" },
     { name = "platformdirs", specifier = ">=4.10.0" },
     { name = "playwright", marker = "extra == 'captcha'", specifier = ">=1.62.0" },
-    { name = "pydantic", specifier = ">=2.12.5,<2.14.0" },
+    { name = "pydantic", specifier = ">=2.12.5,<2.15.0" },
     { name = "qrcode", marker = "extra == 'qrcode'", specifier = ">=8.2" },
     { name = "requests", specifier = ">=2.32.5,<2.35.0" },
     { name = "rich", marker = "extra == 'logs'", specifier = ">=15.0.0" },
