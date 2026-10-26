@@ -451,8 +451,7 @@ class _UserBase(ITDBaseModel):
     id: UUID
     username: str
     display_name: str = Field(alias='displayName')
-    possible_url_avatar: str = Field('?', alias='avatar')  # url or emoji
-    clan_avatar: str = Field('?', alias='clanAvatar')  # always emoji
+    avatar: str = ''
     verified: bool = False
     pin: Pin | None = None
     banner: str | None = None
@@ -505,15 +504,6 @@ class _UserBase(ITDBaseModel):
     @property
     def link(self) -> str:
         return self.url
-
-    @property
-    def avatar(self) -> str:  # emoji
-        return self.clan_avatar
-
-    @property
-    def url_avatar(self) -> str | None:
-        if self.possible_url_avatar.startswith('http'):
-            return self.possible_url_avatar
 
     def __hash__(self):
         return int(self.id)
