@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime
 from functools import cached_property
-from typing import TYPE_CHECKING, Annotated, Literal, overload
+from typing import TYPE_CHECKING, Annotated, overload
 from uuid import UUID
 
 from pydantic import BaseModel, BeforeValidator, Field
 
 from itd.api.pins import get_pins, remove_pin
-from itd.api.portal import get_event_balance, get_event_profile
 from itd.api.search import search
 from itd.api.subscription import get_payment_methods, get_subscription, pay_subscription, toggle_subscription_auto_renewal
 from itd.api.users import (
@@ -161,257 +160,6 @@ class Nickname(BaseModel):
     expires_at: datetime = Field(alias='expiresAt')
     state_version: int = Field(0, alias='stateVersion')
 
-    def __str__(self):
-        return self.label
-
-
-def _item_id(item: EventItem | UUID | str) -> UUID:
-    """ID предмета из инвентаря: можно передать и сам предмет, и его id"""
-    return to_uuid(item.id if isinstance(item, EventItem) else item)
-
-
-def _take_item(client: Client, item: 'EventItem | UUID | str | None', type: EventItemType) -> UUID:
-    """Предмет для действия: переданный или первый подходящий из инвентаря"""
-    if item is not None:
-        return _item_id(item)
-    return _item_id(client.user.take_event_item(type))
-
-
-def _anchor(anchor: 'EventAnchor | dict | None') -> dict | None:
-    """Якорь для апи: модель или уже готовый dict"""
-    if anchor is None or isinstance(anchor, dict):
-        return anchor
-    return anchor.model_dump(mode='json', by_alias=True, exclude_none=True)
-
-
-class _EventProfilePart(ITDBaseModel):
-    """Часть профиля события: знает профиль, в котором находится (его ставит EventProfile._post_refresh)"""
-
-    _profile: 'EventProfile | None' = None
-
-    @property
-    def profile(self) -> 'EventProfile':
-        if self._profile is None:
-            raise ValueError(f'{self.__class__.__name__} is not bound to a profile - get it from User.event_profile')
-        return self._profile
-
-
-class EventProfileWindow(_EventProfilePart):
-    broken: bool = False
-    asset: str | None = None
-    broken_at: datetime | None = Field(None, alias='brokenAt')
-
-    def break_window(self, item: EventItem | UUID | str | None = None, client: Client | None = None):  # "break" busy
-        """Разбить окно камнем
-
-        Args:
-            item (EventItem | UUID | str | None, optional): Камень из инвентаря. None - взять первый камень оттуда. Defaults to None.
-            client (Client | None, optional): Клиент. Defaults to None.
-        """
-        client = client or self.client
-        window = break_event_window(client, self.profile.id, _take_item(client, item, EventItemType.WINDOW)).json()['window']
-        self.broken_at = parse_datetime(window['brokenAt'])
-        self.broken = True
-        self.asset = window.get('asset', 'window_broken')
-        client.user.forget_event_inventory()  # камень потрачен
-
-
-class EventProfileCurtains(_EventProfilePart):
-    amount: int = Field(alias='fund')
-    goal: int = 100
-    available: bool = Field(False, alias='hasCuratins')
-    closed: bool = False
-
-    def donate(self, amount: int, client: Client | None = None) -> int:
-        """Скинуться на шторы
-
-        Args:
-            amount (int): Сколько скинуть (с баланса события).
-            client (Client | None, optional): Клиент. Defaults to None.
-
-        Returns:
-            int: Сколько собрано (локально - точное значение придет при обновлении профиля)
-        """
-        donate_event_curtains(client or self.client, self.profile.id, amount)
-        self.amount += amount
-        if self.amount >= self.goal:
-            self.available = True
-        return self.amount
-
-    def claim(self, client: Client | None = None) -> None:
-        """Забрать шторы, когда на них собрали"""
-        claim_event_curtains(client or self.client, self.profile.id)
-        self.available = True
-
-    def set(self, closed: bool, client: Client | None = None) -> bool:
-        """Закрыть или открыть шторы
-
-        Args:
-            closed (bool): Закрыты ли.
-            client (Client | None, optional): Клиент. Defaults to None.
-
-        Returns:
-            bool: Состояние штор
-        """
-        set_event_curtains(client or self.client, self.profile.id, closed)
-        self.closed = closed
-        return self.closed
-
-    def close(self, client: Client | None = None) -> bool:
-        """Закрыть шторы"""
-        return self.set(True, client)
-
-    def open(self, client: Client | None = None) -> bool:
-        """Открыть шторы"""
-        return self.set(False, client)
-
-    def toggle(self, client: Client | None = None) -> bool:
-        """Переключить шторы"""
-        return self.set(not self.closed, client)
-
-
-class EventAnchor(BaseModel):
-    type: Literal['banner', 'profile_header', 'post'] = Field(alias='kind')
-    id: UUID | None = None
-
-
-class EventSticker(_EventProfilePart):
-    id: UUID
-    type: Literal['sticker'] = Field(alias='kind')
-    asset: str
-    x: float
-    y: float
-    z: float
-    size: float
-    angle: float
-    # wear: Literal[0]
-    anchor: EventAnchor
-    created_at: datetime = Field(alias='createdAt')
-    author: UUID = Field(alias='createdBy')
-
-    def erase(self, client: Client | None = None) -> None:
-        """Стереть стикер ластиком (ластик апи выбирает само)"""
-        client = client or self.client
-        erase_event_sticker(client, self.profile.id, self.id)
-        if self in self.profile.stickers:
-            self.profile.stickers.remove(self)
-        client.user.forget_event_inventory()  # ластик потрачен
-
-    def __str__(self) -> str:
-        return self.asset
-
-    def __hash__(self):
-        return int(self.id)
-
-    def __eq__(self, other) -> bool:
-        if isinstance(other, EventSticker):
-            return self.id == other.id
-        return False
-
-
-class EventBalloon(BaseModel):
-    id: UUID
-    x: float
-    y: float
-    angle: float
-    created_at: datetime = Field(alias='thrownAt')
-    author: UUID = Field(alias='thrownBy')
-    expires_at: datetime = Field(alias='expiresAt')
-    anchor: EventAnchor
-
-
-class EventProfile(ITDBaseModel):
-    id: UUID = Field(alias='profileId')
-    revision: int = Field(alias='rev')
-    # banner: EventProfileBanner # фронт не сомтрит на это + у всех одинаково это поле
-    window: EventProfileWindow
-    curtains: EventProfileCurtains
-    aura: int | None = None
-    nickname: str | None = None
-    stickers: list[EventSticker] = Field(default_factory=list, alias='placements')
-    balloons: list[EventBalloon] = Field(default_factory=list)
-
-    def __init__(self, id: str | UUID, *, client: Client | None = None):
-        super().__init__(client=client)
-        self.id = to_uuid(id)
-        self._extra_context = {'id': id}
-
-    def _refresh(self, client: Client):
-        return get_event_profile(client, self.id).json()
-
-    def _post_refresh(self, context: dict = {}):
-        # окно, шторы и стикеры сами ходят в апи, поэтому им нужен профиль. is_loaded - чтобы не дернуть refresh, если части в данных не было
-        if self.is_loaded('window'):
-            self.window._profile = self
-        if self.is_loaded('curtains'):
-            self.curtains._profile = self
-        if self.is_loaded('stickers'):
-            for sticker in self.stickers:
-                sticker._profile = self
-
-    def place_sticker(
-        self, item: EventItem | UUID | str | None = None, x: float = 0.5, y: float = 0.5, anchor: EventAnchor | dict | None = None, client: Client | None = None
-    ) -> EventSticker | None:
-        """Наклеить стикер на профиль
-
-        Args:
-            item (EventItem | UUID | str | None, optional): Стикер из инвентаря. None - взять первый стикер оттуда. Defaults to None.
-            x (float, optional): Координата по горизонтали (0-1). Defaults to 0.5.
-            y (float, optional): Координата по вертикали (0-1). Defaults to 0.5.
-            anchor (EventAnchor | dict | None, optional): К чему приклеить (баннер, шапка профиля, пост). None - как решит апи. Defaults to None.
-            client (Client | None, optional): Клиент. Defaults to None.
-
-        Returns:
-            EventSticker | None: Наклеенный стикер (None, если апи не вернул его - тогда вызовите refresh())
-        """
-        client = client or self.client
-        data = place_event_sticker(client, self.id, _take_item(client, item, EventItemType.STICKER), x, y, _anchor(anchor)).json()
-        client.user.forget_event_inventory()  # стикер потрачен
-
-        placement = data.get('placement') or data.get('sticker')
-        if not placement:
-            return None
-
-        sticker = EventSticker.from_dict(placement, client=client)
-        sticker._profile = self
-        self.stickers.append(sticker)
-        return sticker
-
-    def throw_balloon(
-        self, item: EventItem | UUID | str | None = None, x: float = 0.5, y: float = 0.5, anchor: EventAnchor | dict | None = None, client: Client | None = None
-    ) -> EventBalloon | None:
-        """Кинуть в профиль шар с водой
-
-        Args:
-            item (EventItem | UUID | str | None, optional): Шар из инвентаря. None - взять первый шар оттуда. Defaults to None.
-            x (float, optional): Координата по горизонтали (0-1). Defaults to 0.5.
-            y (float, optional): Координата по вертикали (0-1). Defaults to 0.5.
-            anchor (EventAnchor | dict | None, optional): Куда кидать. Defaults to None.
-            client (Client | None, optional): Клиент. Defaults to None.
-
-        Returns:
-            EventBalloon | None: Пятно от шара (None, если апи не вернул его - тогда вызовите refresh())
-        """
-        client = client or self.client
-        data = place_event_balloons(client, self.id, _take_item(client, item, EventItemType.BALLOON), x, y, _anchor(anchor)).json()
-        client.user.forget_event_inventory()  # шар потрачен
-
-        balloon = data.get('balloon') or data.get('stain')
-        if not balloon:
-            return None
-
-        balloon = EventBalloon.model_validate(balloon)
-        self.balloons.append(balloon)
-        return balloon
-
-    def claim_fart(self, client: Client | None = None) -> dict:
-        """Забрать пердушку с профиля (POST profiles/{id}/claim)
-
-        Returns:
-            dict: Ответ апи
-        """
-        return get_event_profile_fart(client or self.client, self.id).json()
-
 
 class LastSeen(BaseModel):
     unit: LastSeenUnit
@@ -482,10 +230,6 @@ class _UserBase(ITDBaseModel):
         from itd.models.post import LikedPosts
 
         return LikedPosts(self, client=self.client)
-
-    @cached_property
-    def event_profile(self) -> EventProfile:
-        return EventProfile(self.id, client=self.client)
 
     @property
     def url(self) -> str:
@@ -790,10 +534,6 @@ class Me(_UserBase):
             exc.restore_deadline = parse_datetime(user['restoreDeadline']) if 'restoreDeadline' in user else None
             raise exc
         return user
-
-    @cached_property
-    def event_balance(self) -> int:
-        return get_event_balance(self.client).json()['balance']
 
 
 class Followers(ITDList[User]):
