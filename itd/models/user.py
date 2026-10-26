@@ -220,7 +220,7 @@ class EventProfileWindow(_EventProfilePart):
 class EventProfileCurtains(_EventProfilePart):
     amount: int = Field(alias='fund')
     goal: int = 100
-    available: bool = Field(False, alias='hasCurtains')
+    available: bool = Field(False, alias='hasCuratins')
     closed: bool = False
 
     def donate(self, amount: int, client: Client | None = None) -> int:
