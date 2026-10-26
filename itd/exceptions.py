@@ -405,24 +405,9 @@ class EventError(ITDException):
     pass
 
 
-class CantFixYourself(EventError):
-    code = 'OWN_POST'
-    text = "Red pens and correctors can't be used in self posts"
-
-
 class ItemNotFoundError(EventError):
     code = 'ITEM_UNAVAILABLE'
     text = 'Inventory item not found or wrong type'
-
-
-class NoCorrectorsError(ItemNotFoundError):
-    code = 'NO_CORRECTORS'
-    text = 'No correctors left'
-
-
-class NoRedPensError(ItemNotFoundError):
-    code = 'NO_RED_PENS'
-    text = 'No red pens left'
 
 
 class PartialWordError(EventError):

@@ -5,16 +5,7 @@ from uuid import UUID, uuid4
 
 from itd.core.request import endpoint
 from itd.enums import AuthLevel
-from itd.exceptions import (
-    CantFixYourself,
-    InvalidReplacementError,
-    InvalidSelectionError,
-    ItemNotFoundError,
-    NoCorrectorsError,
-    NoRedPensError,
-    PartialWordError,
-    WordLimitError
-)
+from itd.exceptions import InvalidReplacementError, InvalidSelectionError, ItemNotFoundError, PartialWordError, WordLimitError
 
 if TYPE_CHECKING:
     from itd.core.client import Client
@@ -133,14 +124,12 @@ def erase_event_sticker(client: Client, id: UUID, sticker_id: UUID): ...
 
 
 # operationId - ключ идемпотентности: сайт генерирует новый на каждое применение
-@endpoint(
-    'post', 'red-pens/apply', PartialWordError(), InvalidSelectionError(), WordLimitError(), InvalidReplacementError(), NoRedPensError(), CantFixYourself()
-)
+@endpoint('post', 'red-pens/apply', ItemNotFoundError(), PartialWordError(), InvalidSelectionError(), WordLimitError(), InvalidReplacementError())
 def apply_red_pen(client: Client, id: UUID, event_id: str, revision: str, start: int, end: int, replacement: str):
     return {'postId': str(id), 'eventId': event_id, 'revision': revision, 'start': start, 'end': end, 'replacement': replacement, 'operationId': str(uuid4())}
 
 
-@endpoint('post', 'correctors/apply', PartialWordError(), InvalidSelectionError(), WordLimitError(), NoCorrectorsError(), CantFixYourself())
+@endpoint('post', 'correctors/apply', ItemNotFoundError(), PartialWordError(), InvalidSelectionError(), WordLimitError())
 def apply_corrector(client: Client, id: UUID, event_id: str, revision: str, start: int, end: int):
     return {'postId': str(id), 'eventId': event_id, 'revision': revision, 'start': start, 'end': end, 'operationId': str(uuid4())}
 
