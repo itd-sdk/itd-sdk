@@ -410,26 +410,6 @@ class ItemNotFoundError(EventError):
     text = 'Inventory item not found or wrong type'
 
 
-class PartialWordError(EventError):
-    code = 'PARTIAL_WORD'
-    text = 'Whole word should be selected'
-
-
-class InvalidSelectionError(EventError):
-    code = 'INVALID_SELECTION'
-    text = 'Only one word without spaces can be selected'
-
-
-class WordLimitError(EventError):
-    code = 'WORD_LIMIT'
-    text = 'Word limit exceeded (max 3 for red pens and 1 for corrector)'
-
-
-class InvalidReplacementError(EventError):
-    code = 'INVALID_REPLACEMENT'
-    text = 'Replacement should be one word up to 10 symbols length'
-
-
 DEFAULT_ERRORS = (
     RateLimitError(),
     InvalidAccessTokenError(),
