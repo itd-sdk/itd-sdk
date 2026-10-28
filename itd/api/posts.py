@@ -11,6 +11,7 @@ from itd.exceptions import (
     BannedWordError,
     CantRepostYourselfError,
     EditExpiredError,
+    FeedOverloadedError,
     ForbiddenError,
     NotFoundError,
     NotPinnedError,
@@ -54,7 +55,7 @@ def create_post(
     return data
 
 
-@endpoint('get', 'posts', ValidationError())
+@endpoint('get', 'posts', ValidationError(), FeedOverloadedError())
 def get_posts(client: Client, cursor: str | datetime | None = None, limit: int = 20, tab: PostsTab = PostsTab.POPULAR):
     data: dict = {'limit': limit, 'tab': tab.value}
     if cursor is not None:

@@ -368,7 +368,9 @@ class TargetUserBannedError(ITDException):  # target banned (eg if you try to fo
 
 
 class AccountBannedError(LoginError):  # you are banned
-    json_check = staticmethod(lambda json: json.get('error', {}).get('code') in ('ACCOUNT_BANNED', 'ACCOUNT_DEACTIVATED'))
+    json_check = staticmethod(
+        lambda json: isinstance(json.get('error'), dict) and json.get('error', {}).get('code') in ('ACCOUNT_BANNED', 'ACCOUNT_DEACTIVATED')
+    )
     text = 'Account has been deactivated'
 
 
@@ -413,6 +415,11 @@ class ItemNotFoundError(EventError):
     def __init__(self, type: str | None = None):
         if type:  # для своей проверки инвентаря, до запроса
             self.text = f'No {type} item in inventory'
+
+
+class FeedOverloadedError(ITDException):
+    json_check = staticmethod(lambda json: json.get('error') == 'feed_overloaded')
+    text = 'Feed rebuilder overloaded. Try again in few seconds'
 
 
 DEFAULT_ERRORS = (

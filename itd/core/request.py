@@ -7,6 +7,7 @@ from json import loads
 from time import sleep
 from typing import TYPE_CHECKING, Any, Callable
 from urllib.parse import quote
+from uuid import uuid4
 
 from requests import Response, Session
 from requests.exceptions import JSONDecodeError
@@ -82,7 +83,7 @@ def decode_jwt_payload(jwt_token: str) -> dict[str, Any]:
 
 
 def fetch(client: 'Client', method: str, url: str, params: dict = {}, files: dict[str, tuple[str, BufferedReader | bytes]] = {}, sse: bool = False) -> Response:
-    headers = {'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3'}
+    headers = {'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3', 'idempotency-key': str(uuid4())}
     if client.config._user_agent:
         headers['User-Agent'] = client.config._user_agent
     if client._profile.access and client._profile.access_valid:
@@ -279,6 +280,8 @@ def api_wrapper(*exceptions: ITDException):
                         l.debug('response keys: data - %s', list(json['data'].keys()))
                     else:
                         l.debug('response keys: %s', list(json.keys()))
+                if res.status_code >= 400:
+                    l.error(res.json())
                 res.raise_for_status()
                 return res
 
