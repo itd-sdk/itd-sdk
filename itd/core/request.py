@@ -222,7 +222,7 @@ def api_wrapper(*exceptions: ITDException):
                 limit = int(res.headers.get('x-ratelimit-limit', 0))
                 limits[name] = limit
 
-                if limit not in limiters and config.limiter is not None:
+                if limit not in limiters and config.limiter is not None and limit != 0:
                     limiters[limit] = config.limiter(limit)
 
                 if limit in limiters and (config.auto_acquire or is_first):

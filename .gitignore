@@ -15,3 +15,5 @@ followed.json
 vitalies.json
 site/
 *.txt
+_*.py
+session*
