@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 from functools import cached_property
-from typing import TYPE_CHECKING, Annotated, overload
+from pathlib import Path
+from typing import TYPE_CHECKING, Annotated, Any, Callable, overload
 from uuid import UUID
 
 from pydantic import BaseModel, BeforeValidator, Field
@@ -33,6 +34,7 @@ from itd.core.default import get_default_client
 from itd.core.utils import parse_datetime, to_uuid
 from itd.enums import AccessType, LastSeenUnit, LoadStatus, ReportReason, ReportTargetType, Role, Unset
 from itd.exceptions import AccountDeletedError, NotFoundError, PinNotOwnedError
+from itd.models.banner import BannerDrawing
 from itd.models.file import File
 from itd.models.pin import Pin
 from itd.models.poll import NewPoll
@@ -41,8 +43,17 @@ from itd.models.span import Span
 from itd.models.utils import ATTACHMENTS
 
 if TYPE_CHECKING:
+    from itd.banner import Params as BannerParams
     from itd.core.client import Client
     from itd.models.post import LikedPosts, Post, UserPosts
+
+
+def _is_uuid(value: str) -> bool:
+    try:
+        UUID(value)
+    except ValueError:
+        return False
+    return True
 
 
 class ProfileUser(BaseModel):
@@ -451,15 +462,29 @@ class Me(_UserBase):
         bio: str | None = None,
         display_name: str | None = None,
         username: str | None = None,
-        banner_id: UUID | str | Unset | None = None,  # deprecated
-        banner: UUID | str | Unset | File | None = None
-    ):
-        if isinstance(banner, File):
-            banner_id = banner.id
-        elif banner:
+        banner: BannerDrawing | File | UUID | str | Path | bytes | Any | Unset | None = None
+    ) -> BannerDrawing | None:
+        """Обновить профиль.
+
+        Args:
+            banner: Баннер. Картинка (путь, bytes, файл, `PIL.Image`, массив numpy) рисуется штрихами (`itd.banner`,
+                настройки по умолчанию) и загружается как рисунок-баннер. Можно передать готовый `BannerDrawing`, его id
+                (`UUID` или строку UUID) или `UNSET`, чтобы убрать баннер. Свои настройки рисования - `update_banner`.
+
+        Returns:
+            BannerDrawing | None: загруженный рисунок, если баннер рисовался из картинки.
+        """
+        drawing = None
+        banner_id: UUID | Unset | None = None
+        if isinstance(banner, Unset):
             banner_id = banner
-        if isinstance(banner_id, str):
-            banner_id = to_uuid(banner_id)
+        elif isinstance(banner, (BannerDrawing, File)):
+            banner_id = banner.id
+        elif isinstance(banner, UUID) or (isinstance(banner, str) and _is_uuid(banner)):
+            banner_id = to_uuid(banner)
+        elif banner is not None:
+            drawing = BannerDrawing.from_image(banner, client=self.client)
+            banner_id = drawing.id
         update_profile(self.client, bio, display_name, username, banner_id)
         if bio is not None:
             self.bio = bio
@@ -467,6 +492,32 @@ class Me(_UserBase):
             self.display_name = display_name
         if username is not None:
             self.username = username
+        return drawing
+
+    def update_banner(
+        self,
+        image: Any,
+        params: BannerParams | None = None,
+        *,
+        fit: str = 'cover',
+        on_progress: Callable[[str, float], None] | None = None,
+        **overrides: Any
+    ) -> BannerDrawing:
+        """Нарисовать картинку штрихами, загрузить как рисунок-баннер и поставить в профиль.
+
+        Args:
+            image: путь, bytes, файл, `PIL.Image`, массив numpy или `itd.banner.Rgba`.
+            params: настройки расчета `itd.banner.Params` (по умолчанию `itd.banner.DEFAULTS`).
+            fit: `cover` — заполнить кадр 1100×380 и обрезать по центру, `contain` — вписать целиком, `stretch` — растянуть.
+            on_progress: `(этап, доля 0…1)`.
+            **overrides: поля `Params`, например `engine='strokes'`.
+
+        Returns:
+            BannerDrawing: загруженный рисунок (id, url, штрихи и ΔE превью).
+        """
+        drawing = BannerDrawing.from_image(image, params, fit=fit, on_progress=on_progress, client=self.client, **overrides)
+        update_profile(self.client, banner_id=drawing.id)
+        return drawing
 
     def update_from_fields(self):
         update_profile(self.client, self.bio, self.display_name, self.username)

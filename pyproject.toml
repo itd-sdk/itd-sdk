@@ -61,6 +61,11 @@ captcha = [
     "camoufox[geoip]>=0.4.11",
     "playwright>=1.62.0"
 ]
+banner = [
+    "numpy>=1.24",
+    "numba>=0.59",
+    "pillow>=10.0"
+]
 
 [dependency-groups]
 dev = [

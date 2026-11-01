@@ -1,5 +1,27 @@
 # Migration Guide
 
+## 2.11.0 -> 2.12.0
+
+### Баннер профиля - рисунок
+Баннер ставится рисунком из штрихов (`files/banner-drawing`): `Me.update(banner=...)` сам рисует картинку (нужен `itd-sdk[banner]`). Устаревший параметр `banner_id` убран:
+
+=== "2.11.0"
+
+    ```py
+    me.update(banner_id=file.id)
+    me.update(banner_id=UNSET)
+    ```
+
+=== "2.12.0"
+
+    ```py
+    me.update(banner='banner.jpg')  # картинка -> рисунок
+    me.update(banner=drawing.id)  # id уже загруженного рисунка
+    me.update(banner=UNSET)
+    ```
+
+Подробнее - [Баннер-рисунок](ref/banner.md).
+
 ## 2.7.1 -> 2.8.0
 
 ### Пакет разделен на слои

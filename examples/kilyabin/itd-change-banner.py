@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
+# Needs the banner extra: uv add itd-sdk[banner] (or pip install itd-sdk[banner])
+import sys
 from argparse import ArgumentParser
 from os import getenv
 from os.path import isfile
-import sys
 
-from itd import ITDClient
+from itd import Me, init_client
+from itd.core.auth import AccessAuth
 
 
 def main():
-    parser = ArgumentParser(description='Upload image and set it as profile banner')
+    parser = ArgumentParser(description='Draw an image as banner strokes and set it as profile banner')
 
-    parser.add_argument('--token', default=getenv('ITD_TOKEN'), help='API token (or ITD_TOKEN env var)')
+    parser.add_argument('--token', default=getenv('ITD_TOKEN'), help='Access token (or ITD_TOKEN env var)')
 
     parser.add_argument('--file', required=True, help='Path to image file')
+
+    parser.add_argument('--engine', default='layers', choices=['layers', 'strokes', 'exact'], help='layers - graphics, strokes - photos')
 
     args = parser.parse_args()
 
@@ -27,16 +31,16 @@ def main():
         quit()
 
     try:
-        client = ITDClient(None, args.token)
-        data, _ = client.update_banner_new(file_path)
+        client = init_client('banner', auth=AccessAuth(args.token))
+        drawing = Me(client).update_banner(file_path, engine=args.engine, on_progress=lambda stage, done: print(f'\r⏳ {stage}: {done:.0%}   ', end=''))
+        print()
 
         print('✅ Баннер обновлён!')
-        print('📄 Информация о файле:')
-        print(f'  id: {data.id}')
-        print(f'  filename: {data.filename}')
-        print(f'  mime_type: {data.mime_type}')
-        print(f'  size: {data.size} bytes')
-        print(f'  url: {data.url}')
+        print('📄 Информация о рисунке:')
+        print(f'  id: {drawing.id}')
+        print(f'  url: {drawing.url}')
+        print(f'  штрихов: {len(drawing.ops)}')
+        print(f'  ΔE: {drawing.dE:.2f}')
 
     except Exception as e:
         print('❌ Произошла ошибка:', e, file=sys.stderr)

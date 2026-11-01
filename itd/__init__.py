@@ -43,6 +43,7 @@ from itd.core.default import LimiterConfig, limiters
 from itd.core.default import set_config as set_limiter_config
 from itd.core.limiter import BurstRateLimiter, HalfRateLimiter, IPRateLimiter, RateLimiter
 from itd.models.announcement import Announcement, Announcements
+from itd.models.banner import BannerDrawing
 from itd.models.clan import Clan, TopClans
 from itd.models.comment import Comment
 from itd.models.file import File
@@ -77,6 +78,7 @@ __all__ = [
     'Clan',
     'TopClans',
     'File',
+    'BannerDrawing',
     'Announcement',
     'Announcements',
     'Hashtag',
