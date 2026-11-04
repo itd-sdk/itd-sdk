@@ -58,11 +58,14 @@ print(drawing.id, drawing.url, drawing.dE)
 #### fit <span class="mdx-badge"><span class="mdx-badge__icon">:material-text:</span><span class="mdx-badge__text">str</span></span>
 Как вписать картинку в 1100×380: `cover` (по умолчанию) — заполнить и обрезать по центру, `contain` — вписать целиком с белыми полями, `stretch` — растянуть.
 
+#### optimize <span class="mdx-badge"><span class="mdx-badge__icon">:octicons-number-16:</span><span class="mdx-badge__text">int</span></span>
+[Уровень оптимизации](#optimize) 0…3. По умолчанию 0 — один расчет с заданными настройками.
+
 #### on_progress <span class="mdx-badge"><span class="mdx-badge__icon">:material-function:</span><span class="mdx-badge__text">Callable[[str, float], None]</span></span>
 Вызывается с названием этапа и долей 0…1.
 
 #### **overrides
-Поля [`Params`](#params) поверх `params`, например `engine='strokes'`, `colors=64`.
+Поля [`Params`](#params) поверх `params`, например `engine='strokes'`, `level=0`, `colors=64`.
 
 ## :material-engine: Движки
 | `engine` | Название | Что делает |
@@ -72,6 +75,48 @@ print(drawing.id, drawing.url, drawing.dE)
 | `exact` | «Точный» | Кисть шириной в клетку без чистки. |
 
 Средний ΔE на 14 тестовых картинках программы: «Слои» — 2.06, «Мазки» — 1.49 (около 2 на глаз почти не отличить).
+
+## :material-stairs: Уровень сглаживания (level)
+Внутри программы есть «лестница детализации» `itd.banner.LADDER`: 22 ступени от «как есть» до максимального сглаживания. Чем выше ступень, тем больше сглаживания и чистки пятен, тем меньше цветов и штрихов. Для фото выгоднее всего сначала убирать мелкие пятна при большой палитре, потом сокращать палитру и только потом укрупнять клетку.
+
+```python
+me.update_banner('logo.png', level=0)  # как есть: клетка 1 px, 256 цветов, без сглаживания
+me.update_banner('photo.jpg', level=8)  # сглаживание 1 проход, пятна меньше 48 px² уходят
+me.update_banner('photo.jpg')  # level не задан: auto, самая подробная ступень, которая влезает в лимиты
+```
+
+| level | Клетка | Цветов | Сглаживание | Пятна, px² |
+|---|---|---|---|---|
+| 0 | 1 | 256 | 0 | 1 (не убираются) |
+| 1–4 | 1 | 128 | 0 | 1, 2, 4, 8 |
+| 5–8 | 1 | 128 | 1 | 8, 16, 24, 48 |
+| 9–12 | 1 | 128, 96, 64, 48 | 2 | 64, 96, 128, 192 |
+| 13–15 | 2 | 48, 32, 24 | 1, 1, 2 | 256, 384, 512 |
+| 16–17 | 3 | 24, 16 | 2 | 768, 1024 |
+| 18–19 | 4 | 16, 12 | 2 | 1536, 2048 |
+| 20 | 6 | 10 | 2 | 3072 |
+| 21 | 8 | 8 | 2 | 4096 |
+
+`level` задается вручную, поэтому рисунок может не влезть в лимиты сайта: на фото нижние ступени дают десятки тысяч штрихов. Тогда `BannerDrawing` откажется отправлять его с `ValueError`. На «Мазки» `level` не влияет.
+
+## :material-auto-fix: Уровень оптимизации (optimize)
+Перебрать несколько вариантов настроек и взять самый похожий на картинку (меньший ΔE), который влезает в лимиты. Каждый уровень добавляет свои варианты к предыдущим, а заданные настройки всегда идут первыми:
+
+| optimize | Варианты | Расчетов | Время |
+|---|---|---|---|
+| 0 | только заданные настройки | 1 | 5–15 с |
+| 1 | + «Мазки» | 2 | 10–20 с |
+| 2 | + связность цветов 40 и 70 | 4 | 30–60 с |
+| 3 | + связность 100, классическая палитра, классическая палитра + связность 70, резкие края + связность 40 | 8 | 1–2 мин |
+
+```python
+drawing = me.update_banner('photo.jpg', optimize=2)
+for v in drawing.result.variants:
+    print(v.name, round(v.dE, 3), 'влезает' if v.fits else 'не влезает')
+print('выбран:', drawing.result.params)
+```
+
+Варианты выбраны по замерам на тестовых картинках программы: на фото и рисунках чаще всего выигрывают «Мазки», на плоской графике и логотипах — «Слои». Связность цветов 40–70 улучшает «Слои» почти везде, а классическая палитра и резкие края помогают редко, поэтому они только на уровне 3. Чтобы перебрать свои варианты, можно изменить `itd.banner.OPTIMIZE`.
 
 ## :material-cog: Params
 Настройки расчета (`itd.banner.Params`), такие же, как в программе. Для «Мазков» важен только `engine` и `adjust`.
@@ -105,6 +150,9 @@ print(drawing.id, drawing.url, drawing.dE)
 
 #### adjust <span class="mdx-badge"><span class="mdx-badge__icon">:material-image-filter-center-focus:</span><span class="mdx-badge__text">Adjust</span></span>
 Тон картинки перед расчетом: `Adjust(brightness, contrast, saturation, denoise)`, первые три −1…1, `denoise` — сглаживание с сохранением краев 0…3.
+
+#### level <span class="mdx-badge"><span class="mdx-badge__icon">:octicons-number-16:</span><span class="mdx-badge__text">int | None</span></span>
+[Уровень сглаживания](#level) 0…21 вручную вместо `auto`, `cell`, `colors`, `smooth` и `min_area`. По умолчанию `None`.
 
 ## :material-calculator: Без загрузки
 Посчитать и посмотреть, что получится, не отправляя на сайт:

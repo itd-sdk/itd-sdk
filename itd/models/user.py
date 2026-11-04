@@ -500,6 +500,7 @@ class Me(_UserBase):
         params: BannerParams | None = None,
         *,
         fit: str = 'cover',
+        optimize: int = 0,
         on_progress: Callable[[str, float], None] | None = None,
         **overrides: Any
     ) -> BannerDrawing:
@@ -509,13 +510,15 @@ class Me(_UserBase):
             image: путь, bytes, файл, `PIL.Image`, массив numpy или `itd.banner.Rgba`.
             params: настройки расчета `itd.banner.Params` (по умолчанию `itd.banner.DEFAULTS`).
             fit: `cover` — заполнить кадр 1100×380 и обрезать по центру, `contain` — вписать целиком, `stretch` — растянуть.
+            optimize: уровень оптимизации 0…3: 0 — как задано, выше — перебрать больше вариантов настроек и взять
+                самый похожий на картинку, который влезает в лимиты (дольше).
             on_progress: `(этап, доля 0…1)`.
-            **overrides: поля `Params`, например `engine='strokes'`.
+            **overrides: поля `Params`, например `engine='strokes'` или `level=0` (уровень сглаживания).
 
         Returns:
             BannerDrawing: загруженный рисунок (id, url, штрихи и ΔE превью).
         """
-        drawing = BannerDrawing.from_image(image, params, fit=fit, on_progress=on_progress, client=self.client, **overrides)
+        drawing = BannerDrawing.from_image(image, params, fit=fit, optimize=optimize, on_progress=on_progress, client=self.client, **overrides)
         update_profile(self.client, banner_id=drawing.id)
         return drawing
 

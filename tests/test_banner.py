@@ -13,7 +13,7 @@ np = pytest.importorskip('numpy')
 from helpers import make_client, make_response, make_token
 
 from itd import BannerDrawing, Me
-from itd.banner import DEFAULTS, JIT, MAX_POINTS_PER_OP, Adjust, Op, Params, Rgba, Session, drawing, render_ops, split_long, validate
+from itd.banner import DEFAULTS, JIT, LADDER, MAX_POINTS_PER_OP, Adjust, Op, Params, Rgba, Session, drawing, render_ops, run, split_long, validate
 from itd.banner.color import from_oklab, oklab
 from itd.banner.engines.strokes import strokes
 from itd.banner.segment import merge_small
@@ -74,6 +74,7 @@ GOLDEN = {
         632,
         2.389327676068103
     ),
+    'level5': (Params(level=5), '8253502a2a9090e58e312f05bce31c5dee6479fd747754b3ba61376f5f3c9ebf', 766, 2.0680339919738993),
     'exact': (
         Params(engine='exact', auto=False, cell=2, colors=24, smooth=0, min_area=1),
         '6db52fa7e6e16f364df7c869aff55682cda3644bdd7cbbb61e9f8bb5ae663856',
@@ -105,6 +106,30 @@ def test_strokes_match_original_bit_for_bit():
     ops = strokes(synthetic(), 300)
     assert len(ops) == 300
     assert ops_sha(ops) == '844e825403dbf546151d4b77e0d2ebf42e0c9c869081fe96071a66b811aa1f37'
+
+
+def test_level_is_a_ladder_step():
+    p = Params(level=0).resolved()
+    assert (p.auto, p.detail, p.level) == (False, LADDER[0], None)
+    assert Params(level=len(LADDER) - 1).resolved().detail == LADDER[-1]
+    assert Params().resolved() == Params()
+    with pytest.raises(ValueError):
+        Params(level=len(LADDER)).resolved()
+
+
+@needs_jit
+def test_optimize_takes_most_similar_fitting_variant():
+    r = run(synthetic(), optimize=2)
+    assert [v.name for v in r.variants] == ['Как задано', 'Мазки', 'Связность 40', 'Связность 70']
+    best = min((v for v in r.variants if v.fits), key=lambda v: v.dE)
+    assert r.quality.dE == best.dE
+    assert r.params == best.params.resolved()
+    assert validate(r.ops) == []
+
+
+def test_optimize_level_is_checked():
+    with pytest.raises(ValueError):
+        Session(synthetic()).optimize(DEFAULTS, 4)
 
 
 def test_validate_catches_what_the_site_rejects():

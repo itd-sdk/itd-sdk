@@ -67,10 +67,23 @@ class Params:
     white_min: float = 245
     """Светлее этого по всем каналам = белый холст; 254 — только чисто белый; 255 и выше — выкл."""
     adjust: Adjust = field(default_factory=Adjust)
+    level: int | None = None
+    """Уровень сглаживания — ступень лестницы детализации `LADDER` вручную: 0 — как есть (клетка 1 px, 256 цветов,
+    без сглаживания и чистки), дальше всё больше сглаживания и чистки пятен, меньше цветов и штрихов, 21 — максимум.
+    Заменяет `auto`, `cell`, `colors`, `smooth` и `min_area`. None — по `auto`."""
 
     @property
     def detail(self) -> Detail:
         return Detail(self.cell, self.colors, self.smooth, self.min_area)
+
+    def resolved(self) -> Params:
+        """Настройки с раскрытым `level`."""
+        if self.level is None:
+            return self
+        if not 0 <= self.level < len(LADDER):
+            raise ValueError(f'level must be 0..{len(LADDER) - 1}, got {self.level}')
+        d = LADDER[self.level]
+        return replace(self, auto=False, cell=d.cell, colors=d.colors, smooth=d.smooth, min_area=d.min_area, level=None)
 
 
 DEFAULTS = Params()
@@ -109,6 +122,22 @@ LADDER: list[Detail] = [
 ]
 
 
+# Optimization levels: settings changes tried on top of the given ones, each level adds its own to the previous ones.
+# Chosen on bench/data: strokes win on photos and drawings, layers on flat graphics; color merge 40-70 improves layers
+# almost everywhere, classic palette and sharp edges help rarely.
+OPTIMIZE: list[list[tuple[str, dict]]] = [
+    [],
+    [('Мазки', {'engine': 'strokes'})],
+    [('Связность 40', {'engine': 'layers', 'merge': 40}), ('Связность 70', {'engine': 'layers', 'merge': 70})],
+    [
+        ('Связность 100', {'engine': 'layers', 'merge': 100}),
+        ('Классическая палитра', {'engine': 'layers', 'palette_mode': 'classic'}),
+        ('Классическая палитра + связность 70', {'engine': 'layers', 'palette_mode': 'classic', 'merge': 70}),
+        ('Резкие края + связность 40', {'engine': 'layers', 'sharp_edges': True, 'merge': 40})
+    ]
+]
+
+
 @dataclass
 class Tried:
     detail: Detail
@@ -126,6 +155,21 @@ class Result:
     palette: list[str]
     tried: list[Tried]
     """Сколько вариантов перебрал подбор и сколько из них влезло."""
+    params: Params | None = None
+    """Настройки, с которыми посчитан результат (у оптимизации — выбранный вариант)."""
+    variants: list[Variant] = field(default_factory=list)
+    """Варианты, которые перебрала оптимизация."""
+
+
+@dataclass
+class Variant:
+    name: str
+    params: Params
+    dE: float
+    fits: bool
+    """Влезает ли в лимиты сайта."""
+    ops: int
+    points: int
 
 
 def _pal_lab(palette: list[str], white: bool) -> np.ndarray:
@@ -229,6 +273,7 @@ class Session:
 
     def run(self, p: Params = DEFAULTS, on_progress: OnProgress | None = None) -> Result:
         progress = on_progress or (lambda stage, done: None)
+        p = p.resolved()
         self._prepare(p)
         tried: list[Tried] = []
 
@@ -278,10 +323,48 @@ class Session:
         progress('Перекраска', 1)
         ops = recolor(best[0], self._target_lab, self._target.width, self._target.height)
         progress('Оценка', 1)
-        return Result(ops, stats(ops), self.quality(ops), best[2], best[1], tried)
+        return Result(ops, stats(ops), self.quality(ops), best[2], best[1], tried, p)
+
+    def optimize(self, p: Params = DEFAULTS, level: int = 1, on_progress: OnProgress | None = None) -> Result:
+        """Перебрать варианты настроек уровня оптимизации и взять самый похожий на картинку (меньший ΔE), который влезает в лимиты.
+
+        Варианты — настройки `p` с изменениями из `OPTIMIZE[level]`; сами `p` всегда первые. Если не влез ни один, отдается
+        результат `p`.
+        """
+        if not 0 <= level < len(OPTIMIZE):
+            raise ValueError(f'optimize level must be 0..{len(OPTIMIZE) - 1}, got {level}')
+        candidates: list[tuple[str, Params]] = [('Как задано', p)]
+        candidates += [(name, replace(p, **delta)) for lvl in OPTIMIZE[1 : level + 1] for name, delta in lvl]
+        seen, unique = set(), []
+        for name, c in candidates:
+            # strokes ignore palette, cleaning and detail settings
+            key = ('strokes', repr(c.adjust)) if c.engine == 'strokes' else repr(c.resolved())
+            if key not in seen:
+                seen.add(key)
+                unique.append((name, c))
+        progress = on_progress or (lambda stage, done: None)
+        results: list[Result] = []
+        variants: list[Variant] = []
+        for i, (name, c) in enumerate(unique):
+
+            def inner(stage: str, done: float, i=i, name=name):
+                progress(f'Вариант {i + 1}/{len(unique)} ({name}): {stage}', (i + min(1.0, done)) / len(unique))
+
+            r = self.run(c, inner)
+            results.append(r)
+            variants.append(Variant(name, c, r.quality.dE, r.stats.ops <= MAX_OPS and r.stats.points <= MAX_POINTS, r.stats.ops, r.stats.points))
+        fitting = [k for k, v in enumerate(variants) if v.fits]
+        best = min(fitting, key=lambda k: variants[k].dE) if fitting else 0
+        return replace(results[best], variants=variants)
 
 
-def run(src: Rgba, params: Params | None = None, on_progress: OnProgress | None = None, **overrides) -> Result:
-    """Картинка 1100×380 → штрихи. overrides — поля Params (engine='strokes', colors=64…)."""
+def run(src: Rgba, params: Params | None = None, on_progress: OnProgress | None = None, optimize: int = 0, **overrides) -> Result:
+    """Картинка 1100×380 → штрихи.
+
+    Args:
+        optimize: уровень оптимизации: 0 — один расчёт с заданными настройками, 1…3 — перебрать варианты
+            (`OPTIMIZE`) и взять самый похожий, который влезает в лимиты. Чем выше, тем больше вариантов и дольше.
+        **overrides: поля Params (engine='strokes', level=0, merge=40…).
+    """
     p = replace(params or DEFAULTS, **overrides)
-    return Session(src).run(p, on_progress)
+    return Session(src).optimize(p, optimize, on_progress) if optimize else Session(src).run(p, on_progress)

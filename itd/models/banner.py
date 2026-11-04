@@ -43,6 +43,7 @@ class BannerDrawing(ITDBaseModel):
         params: Params | None = None,
         *,
         fit: str = 'cover',
+        optimize: int = 0,
         on_progress: Callable[[str, float], None] | None = None,
         client: Client | None = None,
         **overrides: Any
@@ -53,10 +54,11 @@ class BannerDrawing(ITDBaseModel):
             image: путь, bytes, файл, `PIL.Image`, массив numpy (h×w×3/4) или `itd.banner.Rgba` 1100×380.
             params: настройки расчета (`itd.banner.Params`), по умолчанию `itd.banner.DEFAULTS`.
             fit: `cover` — заполнить кадр и обрезать по центру, `contain` — вписать целиком, `stretch` — растянуть.
+            optimize: уровень оптимизации 0…3: перебрать варианты настроек и взять самый похожий, который влезает в лимиты.
             on_progress: `(этап, доля 0…1)`.
-            **overrides: поля `Params`, например `engine='strokes'`.
+            **overrides: поля `Params`, например `engine='strokes'` или `level=0`.
         """
-        return cls(render(image, params, fit=fit, on_progress=on_progress, **overrides), client)
+        return cls(render(image, params, fit=fit, optimize=optimize, on_progress=on_progress, **overrides), client)
 
     @property
     def dE(self) -> float | None:
@@ -68,7 +70,13 @@ class BannerDrawing(ITDBaseModel):
 
 
 def render(
-    image: Any, params: Params | None = None, *, fit: str = 'cover', on_progress: Callable[[str, float], None] | None = None, **overrides: Any
+    image: Any,
+    params: Params | None = None,
+    *,
+    fit: str = 'cover',
+    optimize: int = 0,
+    on_progress: Callable[[str, float], None] | None = None,
+    **overrides: Any
 ) -> Result:
     """Посчитать штрихи для картинки локально, без загрузки."""
     try:
@@ -88,7 +96,7 @@ def render(
             src = fit_image(_rgba_to_pil(src), fit)
     else:
         src = fit_image(image, fit)
-    return run(src, params, on_progress, **overrides)
+    return run(src, params, on_progress, optimize, **overrides)
 
 
 def _rgba_to_pil(img):
