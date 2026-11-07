@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from json import loads
+from json import JSONDecodeError, loads
 from threading import Thread
 from typing import TYPE_CHECKING, Annotated, Any, Callable, Iterator, Literal, cast
 from uuid import UUID
 
 from pydantic import BaseModel, BeforeValidator, Field
-from sseclient import SSEClient
+from requests import Response
 
 from itd.api.notifications import (
     get_notifications,
@@ -21,6 +21,7 @@ from itd.api.notifications import (
 from itd.core.base import ITDBaseModel, ITDList
 from itd.core.client import Client
 from itd.core.logger import get_logger
+from itd.core.sse import iter_sse
 from itd.core.utils import parse_datetime
 from itd.enums import DebugResponseMode, LoadStatus, NotificationSubjectType, NotificationTargetType, NotificationType
 from itd.models.user import User
@@ -157,6 +158,10 @@ class Notification(ITDBaseModel):
     actor: User | None = None
     sound: bool = False  # for notifications from stream
 
+    # alice_task_reminder only
+    event_id: str | None = Field(None, alias='eventId')
+    expires_at: Annotated[datetime, BeforeValidator(parse_datetime)] | None = Field(None, alias='expiresAt')
+
     def __hash__(self):
         return int(self.id)
 
@@ -273,22 +278,42 @@ class Notifications(ITDList[Notification]):
         self._stream = stream_notifications(self.client)
         l.info('start stream')
 
-        for event in SSEClient(cast(Iterator[bytes], self._stream)).events():
-            data = loads(event.data)
+        for event in iter_sse(cast(Response, self._stream).iter_content(chunk_size=None)):
+            try:
+                data = loads(event.data)
+            except JSONDecodeError:
+                l.warning('sse message parse error: %r', event.data)
+                continue
             if self.client.config.debug_response != DebugResponseMode.NO:
-                l.debug('< %s', data)
+                l.debug('< %s %s', event.event, data)
 
-            if 'userId' in data and 'timestamp' in data and 'type' not in data:
-                l.info('received init message', data)
-                continue  # initial message
+            name = event.event or data.get('type', '')
+
+            if name == 'notification.event-ended':
+                self._remove_event_reminders(data.get('eventId'))
+                continue
+
+            if name == 'notification.event':
+                if data.get('type') != NotificationType.EVENT_REMINDER.value or not self._is_active_reminder(data):
+                    continue
+            elif name != 'notification' and 'type' not in data:
+                if 'userId' in data and 'timestamp' in data:
+                    l.info('received init message')
+                else:
+                    l.debug('skip sse event %s', name)
+                continue  # init message, alice.bell and other non-notification events
 
             notification: Notification = Notification.from_dict(data, self, client=self.client)
+            if any(n.id == notification.id for n in self._loaded()):
+                continue  # reminders can be resent after reconnect
             self.insert(0, notification)
-            if self._unread is not None:
+            if self._unread is not None and not notification.is_read:
                 self._unread += 1
 
             l.info('new notification type=%s', notification.type.value)
-            exec(f'self.on_{notification.type.value}(notification)')
+            handler = getattr(self, f'on_{notification.type.value}', None)
+            if handler:
+                handler(notification)
             self.on_notification(notification)
             for callback in self._callbacks[notification.type] + self._callbacks[None]:
                 callback(notification)
@@ -296,6 +321,38 @@ class Notifications(ITDList[Notification]):
             yield notification
 
         l.info('stop stream')
+
+    def _loaded(self) -> Iterator[Notification]:
+        # plain list iteration, ITDList.__iter__ would lazy load from api
+        return list.__iter__(self)
+
+    @staticmethod
+    def _is_active_reminder(data: dict) -> bool:
+        if not data.get('eventId') or not data.get('expiresAt'):
+            return False
+        try:
+            expires_at = parse_datetime(data['expiresAt'])
+        except (TypeError, ValueError):
+            return False
+        return expires_at > datetime.now(expires_at.tzinfo)
+
+    def _remove_event_reminders(self, event_id: str | None) -> None:
+        """Remove reminders of the ended event (or all expired ones if event_id is None)"""
+        def ended(n: Notification) -> bool:
+            if n.type != NotificationType.EVENT_REMINDER:
+                return False
+            if event_id:
+                return n.event_id == event_id
+            return n.expires_at is not None and n.expires_at <= datetime.now(n.expires_at.tzinfo)
+
+        removed = [n for n in self._loaded() if ended(n)]
+        for n in removed:
+            self.remove(n)
+        if self._unread is not None:
+            self._unread = max(0, self._unread - sum(not n.is_read for n in removed))
+
+        l.info('event ended event_id=%s removed=%s', event_id, len(removed))
+        self.on_event_ended(event_id)
 
     def stream_bg(self, daemon: bool = False) -> Thread:
         def _stream():
@@ -334,6 +391,10 @@ class Notifications(ITDList[Notification]):
     def on_comment_mention(self, notification: Notification, /) -> None: ...
 
     def on_wall_post(self, notification: Notification, /) -> None: ...
+
+    def on_alice_task_reminder(self, notification: Notification, /) -> None: ...
+
+    def on_event_ended(self, event_id: str | None, /) -> None: ...
 
     def on_notification(self, notification: Notification, /) -> None: ...
 
