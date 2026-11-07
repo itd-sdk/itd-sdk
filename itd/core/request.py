@@ -350,7 +350,7 @@ def endpoint(method: str, url: str, *exceptions: ITDException, sse: bool = False
             return client.request(method, path, payload.params, payload.files, sse=sse, level=level)
 
         wrapped = request if sse else api_wrapper(*exceptions)(request)
-        wrapped.endpoint = declaration
+        wrapped.endpoint = declaration  # ty: ignore
         return wrapped
 
     return decorator

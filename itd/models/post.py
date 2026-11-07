@@ -511,10 +511,7 @@ class UserPosts(_BasePosts):
 
         self.sorting = sorting  # sort is busy
         self._force_remove_pinned_post: bool = False
-
-    @property
-    def source_context(self):
-        return str(self.user.id)
+        self.source_context = str(self.user.id)
 
     def _fetch(self, client: Client, limit: int) -> dict:
         if self.sorting == UserPostSorting.NEW and client.config.userposts_add_pinned_post and not self._force_remove_pinned_post:
