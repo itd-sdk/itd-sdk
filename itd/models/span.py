@@ -8,6 +8,7 @@ class Span(BaseModel):
     offset: int
     type: SpanType
     url: str | None = None
+    tag: str | None = None
 
     @field_validator('type', mode='before')
     @classmethod
@@ -20,4 +21,6 @@ class Span(BaseModel):
             return 'monospace'
         return type
 
-    tag: str | None = None
+    def _fix_utf16(self, content: str):
+        self.length -= (len(content[self.offset : self.offset + self.length]) // 2) - len(content[self.offset : self.offset + self.length].encode('utf-16le'))
+        self.offset -= (len(content[: self.offset].encode('utf-16le')) // 2) - len(content[: self.offset])

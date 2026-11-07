@@ -103,6 +103,8 @@ class Post(ITDBaseModel):
                 comment._post = self
         for attachment in self.attachments:
             attachment._post = self
+        for span in self.spans:
+            span._fix_utf16(self.content)
 
     @classmethod
     def new(
