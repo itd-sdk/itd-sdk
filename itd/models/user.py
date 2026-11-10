@@ -400,7 +400,6 @@ class Me(_UserBase):
     wall_access: AccessType = Field(alias='wallAccess')
     likes_visibility: AccessType = Field(alias='likesVisibility')
     is_private: bool = Field(False, alias='isPrivate')
-    is_phone_verified: bool = Field(alias='isPhoneVerified')
     subscription: Subscription
 
     followers_count: int = Field(alias='followersCount')
@@ -424,7 +423,7 @@ class Me(_UserBase):
     def to_user(self) -> User:
         instance = User.__new__(User)
         ITDBaseModel.__init__(instance, self._client)
-        for name in instance._validator.model_fields:
+        for name in instance._validator.model_fields:  # ty: ignore
             if hasattr(self, name):
                 setattr(instance, name, getattr(self, name))
         instance._identifier = self.id
@@ -626,7 +625,7 @@ def get_follow_status(users: list[User | UUID | str] | User | UUID | str, *, cli
             if isinstance(user, User):
                 user_ids.append(user.id)
             else:
-                user_ids.append(to_uuid(user))  # ty: ignore[invalid-argument-type]
+                user_ids.append(to_uuid(user))
     elif isinstance(users, User):
         user_ids = [users.id]
     else:

@@ -22,5 +22,5 @@ class Span(BaseModel):
         return type
 
     def _fix_utf16(self, content: str):
-        self.length -= (len(content[self.offset : self.offset + self.length]) // 2) - len(content[self.offset : self.offset + self.length].encode('utf-16le'))
+        self.length -= (len(content[self.offset : self.offset + self.length].encode('utf-16le')) // 2) - len(content[self.offset : self.offset + self.length])
         self.offset -= (len(content[: self.offset].encode('utf-16le')) // 2) - len(content[: self.offset])
