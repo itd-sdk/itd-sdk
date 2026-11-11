@@ -388,11 +388,11 @@ user = me.to_user()
 ```python
 from itd.enums import UNSET
 
-profile = me.update(
+me.update(
     bio='био',
     display_name='имя',
     username='username',
-    banner_id=UNSET
+    banner='banner.jpg'  # картинка рисуется штрихами и ставится баннером
 )
 ```
 
@@ -414,8 +414,8 @@ me.update_from_fields()
 #### bio <span class="mdx-badge"><span class="mdx-badge__icon">:material-text:</span><span class="mdx-badge__text">str</span></span>
 Биография (о себе).
 
-#### banner_id <span class="mdx-badge"><span class="mdx-badge__icon">:material-identifier: | UNSET</span><span class="mdx-badge__text">UUID | Unset</span></span>
-ID файла баннера.
+#### banner <span class="mdx-badge"><span class="mdx-badge__icon">:material-image: | :material-identifier: | UNSET</span><span class="mdx-badge__text">картинка | BannerDrawing | UUID | Unset</span></span>
+Баннер. Картинка (путь, `bytes`, `PIL.Image`, массив numpy) рисуется штрихами и загружается как [рисунок-баннер](banner.md); в хорошем качестве — с `itd-sdk[banner]`, без него простым режимом. Также можно передать готовый [`BannerDrawing`](banner.md#bannerdrawing) или его id. В ответ отдает загруженный `BannerDrawing`, если баннер рисовался.
 
 !!! tip
 
@@ -424,12 +424,15 @@ ID файла баннера.
     ```python
     from itd.enums import UNSET
 
-    me.update(banner_id=UNSET)
+    me.update(banner=UNSET)
     ```
+
+    Свои настройки рисования (движок, палитра, кадрирование) - [`me.update_banner`](banner.md).
 
 ### Ошибки
  - `ValidationError` - ошибка валидации (например слишком длинное имя).
  - `RequiresVerificationError` - требуется верификация для загрузки GIF-баннера.
+ - ошибки загрузки рисунка - см. [Баннер-рисунок](banner.md).
  - `UsernameTakenError` - username уже занят.
 
 ## :fontawesome-solid-user-lock: Обновить настройки приватности

@@ -322,6 +322,24 @@ class ModerationFailedError(FileError):
     text = 'Unable to moderate image'
 
 
+class BannerDrawingTooComplexError(FileError):
+    code = 'BANNER_DRAWING_TOO_COMPLEX'
+    status_code = 413
+    text = 'Banner drawing is too complex (allowed 2000 strokes and 60000 points)'
+
+
+class BannerDrawingRateLimitError(RateLimitError):
+    """Сайт ограничивает частоту загрузок рисунков и пишет, сколько ждать, в retryAfter тела ответа"""
+
+    status_code = 429
+
+    def prepare(self, json: dict) -> 'ITDException':
+        exception = super().prepare(json)
+        if not getattr(exception, 'retry_after', 0) and isinstance(json.get('retryAfter'), (int, float)):
+            exception.retry_after = json['retryAfter']  # type: ignore[attr-defined]
+        return exception
+
+
 class EditExpiredError(ITDException):
     code = 'EDIT_WINDOW_EXPIRED'
     text = 'Editing allowed only in first 48 hours after posting'

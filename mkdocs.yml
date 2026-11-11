@@ -61,6 +61,7 @@ nav:
         - Анонсы: ref/announcements.md
         - Хэштэги: ref/hashtags.md
         - Файлы и вложения: ref/files.md
+        - Баннер-рисунок: ref/banner.md
         - Сессии: ref/sessions.md
         - Портал: ref/portal.md
         - Кланы: ref/clans.md
@@ -82,6 +83,7 @@ nav:
         - api/comment.md
         - api/user.md
         - api/file.md
+        - api/banner.md
         - api/hashtag.md
         - api/pin.md
         - api/poll.md

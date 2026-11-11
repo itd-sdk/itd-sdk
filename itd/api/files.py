@@ -5,7 +5,15 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from itd.core.request import Payload, endpoint
-from itd.exceptions import InvalidFileTypeError, ModerationFailedError, TooLargeError, UploadError
+from itd.exceptions import (
+    BannerDrawingRateLimitError,
+    BannerDrawingTooComplexError,
+    InvalidFileTypeError,
+    ModerationFailedError,
+    TooLargeError,
+    UploadError,
+    ValidationError
+)
 
 if TYPE_CHECKING:
     from itd.core.client import Client
@@ -18,3 +26,8 @@ def upload_file(client: Client, name: str, data: BufferedReader | bytes):
 
 @endpoint('delete', 'files/{id}')
 def delete_file(client: Client, id: UUID): ...
+
+
+@endpoint('post', 'files/banner-drawing', BannerDrawingTooComplexError(), BannerDrawingRateLimitError(), ValidationError(), UploadError())
+def upload_banner_drawing(client: Client, drawing: dict):
+    return drawing

@@ -1,0 +1,134 @@
+{
+ "brush": [
+  {
+   "tool": "brush",
+   "color": "#ff0000",
+   "width": 20,
+   "points": [
+    [
+     100,
+     100
+    ],
+    [
+     300,
+     100
+    ]
+   ]
+  }
+ ],
+ "line": [
+  {
+   "tool": "line",
+   "color": "#00aa00",
+   "width": 10,
+   "points": [
+    [
+     100,
+     100
+    ],
+    [
+     400,
+     200
+    ]
+   ]
+  }
+ ],
+ "rect": [
+  {
+   "tool": "rectangle",
+   "color": "#0000ff",
+   "width": 10,
+   "points": [
+    [
+     100,
+     100
+    ],
+    [
+     400,
+     200
+    ]
+   ]
+  }
+ ],
+ "circle": [
+  {
+   "tool": "circle",
+   "color": "#ff00ff",
+   "width": 10,
+   "points": [
+    [
+     300,
+     190
+    ],
+    [
+     380,
+     190
+    ]
+   ]
+  }
+ ],
+ "wide": [
+  {
+   "tool": "brush",
+   "color": "#ff0000",
+   "width": 100,
+   "points": [
+    [
+     100,
+     190
+    ],
+    [
+     900,
+     190
+    ]
+   ]
+  }
+ ],
+ "offcanvas": [
+  {
+   "tool": "brush",
+   "color": "#ff0000",
+   "width": 20,
+   "points": [
+    [
+     -500,
+     -200
+    ],
+    [
+     1600,
+     600
+    ]
+   ]
+  }
+ ],
+ "decimals": [
+  {
+   "tool": "brush",
+   "color": "#ff0000",
+   "width": 20,
+   "points": [
+    [
+     100.123456,
+     100.987654
+    ],
+    [
+     300.5,
+     100.25
+    ]
+   ]
+  }
+ ],
+ "dot": [
+  {
+   "tool": "brush",
+   "color": "#ff0000",
+   "width": 20,
+   "points": [
+    [
+     100,
+     100
+    ]
+   ]
+  }
+ ]
+}
