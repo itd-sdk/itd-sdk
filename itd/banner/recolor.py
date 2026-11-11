@@ -11,8 +11,8 @@ import numpy as np
 
 from itd.banner.color import code_from_oklab, oklab_code
 from itd.banner.jit import jit
-from itd.banner.limits import Op, pack
-from itd.banner.raster import T_ERASER, Coverage, _clear, cover_op
+from itd.banner.limits import Op
+from itd.banner.raster import T_ERASER, Coverage, _clear, cover_op, pack
 
 
 @jit

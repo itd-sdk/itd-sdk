@@ -58,7 +58,7 @@ ITDClient('refresh token') # одноразовая инициализация (
 
 me = Me() # получить себя
 me.privacy.update(is_private=True)
-me.update(banner='banner.jpg') # картинка рисуется штрихами и ставится баннером (нужен itd-sdk[banner])
+me.update(banner='banner.jpg') # картинка рисуется штрихами и ставится баннером (качественно - с itd-sdk[banner])
 
 user = User('itd_sdk') # получить пользователя
 user.follow()

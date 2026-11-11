@@ -7,7 +7,6 @@ from dataclasses import dataclass
 import numpy as np
 
 from itd.banner.jit import jit
-from itd.banner.jsmath import f32, js_round
 
 
 @dataclass
@@ -32,7 +31,7 @@ class Adjust:
 
 
 def _clamped(v: np.ndarray) -> np.ndarray:
-    # Uint8ClampedArray: clamp and round half to even
+    # to bytes: clamp to 0..255 and round
     return np.rint(np.clip(np.nan_to_num(v, nan=0.0), 0, 255)).astype(np.uint8)
 
 
@@ -61,7 +60,7 @@ def adjust(src: Rgba, a: Adjust) -> Rgba:
 
 # strength d -> radius 2d and threshold 0.0004*d^2; a fractional radius mixes the filters of the neighbouring integer radii
 def _denoise(data: np.ndarray, w: int, h: int, d: float) -> np.ndarray:
-    R = js_round(d * 2 * 1000) / 1000
+    R = round(d * 2 * 1000) / 1000
     r0 = int(R // 1)
     f = R - r0
     eps = 0.0004 * d * d * 65025
@@ -83,14 +82,14 @@ def _box_mean(src, w, h, r):
         for x in range(-r, r + 1):
             s += src[o + min(w - 1, max(0, x))]
         for x in range(w):
-            tmp[o + x] = f32(s / (2 * r + 1))
+            tmp[o + x] = s / (2 * r + 1)
             s += src[o + min(w - 1, x + r + 1)] - src[o + max(0, x - r)]
     for x in range(w):
         s = 0.0
         for y in range(-r, r + 1):
             s += tmp[min(h - 1, max(0, y)) * w + x]
         for y in range(h):
-            out[y * w + x] = f32(s / (2 * r + 1))
+            out[y * w + x] = s / (2 * r + 1)
             s += tmp[min(h - 1, y + r + 1) * w + x] - tmp[max(0, y - r) * w + x]
     return out
 
@@ -100,8 +99,8 @@ def _guided_ab(m, m2, eps, A, B):
     for i in range(m.shape[0]):
         v = m2[i] - m[i] * m[i]
         a = v / (v + eps)
-        A[i] = f32(a)
-        B[i] = f32(m[i] - a * m[i])
+        A[i] = a
+        B[i] = m[i] - a * m[i]
 
 
 def _guided(data: np.ndarray, w: int, h: int, r: int, eps: float) -> np.ndarray:

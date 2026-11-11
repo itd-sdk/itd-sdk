@@ -415,7 +415,7 @@ me.update_from_fields()
 Биография (о себе).
 
 #### banner <span class="mdx-badge"><span class="mdx-badge__icon">:material-image: | :material-identifier: | UNSET</span><span class="mdx-badge__text">картинка | BannerDrawing | UUID | Unset</span></span>
-Баннер. Картинка (путь, `bytes`, `PIL.Image`, массив numpy) рисуется штрихами и загружается как [рисунок-баннер](banner.md) — нужен `itd-sdk[banner]`. Также можно передать готовый [`BannerDrawing`](banner.md#bannerdrawing) или его id. В ответ отдает загруженный `BannerDrawing`, если баннер рисовался.
+Баннер. Картинка (путь, `bytes`, `PIL.Image`, массив numpy) рисуется штрихами и загружается как [рисунок-баннер](banner.md); в хорошем качестве — с `itd-sdk[banner]`, без него простым режимом. Также можно передать готовый [`BannerDrawing`](banner.md#bannerdrawing) или его id. В ответ отдает загруженный `BannerDrawing`, если баннер рисовался.
 
 !!! tip
 

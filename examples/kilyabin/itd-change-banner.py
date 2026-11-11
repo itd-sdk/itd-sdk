@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Needs the banner extra: uv add itd-sdk[banner] (or pip install itd-sdk[banner])
+# Full quality needs the banner extra: uv add itd-sdk[banner]; without it a simple low quality mode is used
 import sys
 from argparse import ArgumentParser
 from os import getenv

@@ -5,17 +5,49 @@ a 1 px dot covers only pi/4 of a pixel, a line end ~0.9, and the white canvas sh
 """
 
 import math
+from dataclasses import dataclass
 
 import numpy as np
 
+from itd.banner.color import from_hex
 from itd.banner.jit import jit
-from itd.banner.jsmath import f32, hypot2, u8c
-from itd.banner.limits import Op, Packed, pack
+from itd.banner.limits import TOOLS, Op
 
 # subpixels per pixel side at ends and joins of a thin brush; along the body the formula is enough
 SS = 10
 
 T_BRUSH, T_LINE, T_RECT, T_CIRCLE, T_ERASER = range(5)
+
+
+@dataclass
+class Packed:
+    """Штрихи в массивах для ядер: инструмент, цвет 0xRRGGBB, ширина, начало точек штриха в pts."""
+
+    tools: np.ndarray
+    colors: np.ndarray
+    widths: np.ndarray
+    starts: np.ndarray
+    pts: np.ndarray
+
+    def __len__(self) -> int:
+        return self.tools.shape[0]
+
+
+def pack(ops: list[Op]) -> Packed:
+    starts = np.zeros(len(ops) + 1, dtype=np.int64)
+    for k, o in enumerate(ops):
+        starts[k + 1] = starts[k] + len(o.points)
+    pts = np.zeros((int(starts[-1]), 2))
+    for k, o in enumerate(ops):
+        if o.points:
+            pts[starts[k] : starts[k + 1]] = o.points
+    return Packed(
+        np.array([TOOLS.index(o.tool) for o in ops], dtype=np.int64),
+        np.array([from_hex(o.color) for o in ops], dtype=np.int64),
+        np.array([float(o.width) for o in ops], dtype=np.float64),
+        starts,
+        pts
+    )
 
 
 class Coverage:
@@ -46,7 +78,7 @@ def _put(cov, touched, n, i, c):
     if cov[i] == 0:
         touched[n] = i
         n += 1
-    cov[i] = f32(c)
+    cov[i] = c
     return n
 
 
@@ -179,7 +211,7 @@ def ring(cov, touched, n, w, h, cx, cy, R, r):
     y1 = min(h - 1, math.ceil(cy + e))
     for y in range(y0, y1 + 1):
         for x in range(x0, x1 + 1):
-            d = abs(hypot2(x + 0.5 - cx, y + 0.5 - cy) - R)
+            d = abs(math.hypot(x + 0.5 - cx, y + 0.5 - cy) - R)
             if d < r + 0.5:
                 n = _put(cov, touched, n, y * w + x, min(1.0, r + 0.5 - d))
     return n
@@ -190,7 +222,7 @@ def cover_op(cov, touched, n, w, h, tool, width, p):
     r = width / 2
     last = p.shape[0] - 1
     if tool == T_CIRCLE:
-        return ring(cov, touched, n, w, h, p[0, 0], p[0, 1], hypot2(p[last, 0] - p[0, 0], p[last, 1] - p[0, 1]), r)
+        return ring(cov, touched, n, w, h, p[0, 0], p[0, 1], math.hypot(p[last, 0] - p[0, 0], p[last, 1] - p[0, 1]), r)
     if tool == T_RECT:
         x0 = p[0, 0]
         y0 = p[0, 1]
@@ -213,9 +245,9 @@ def composite(rgb, cov, touched, n, c):
         i = touched[k]
         a = cov[i]
         j = i * 3
-        rgb[j] = f32(rgb[j] + (cr - rgb[j]) * a)
-        rgb[j + 1] = f32(rgb[j + 1] + (cg - rgb[j + 1]) * a)
-        rgb[j + 2] = f32(rgb[j + 2] + (cb - rgb[j + 2]) * a)
+        rgb[j] = rgb[j] + (cr - rgb[j]) * a
+        rgb[j + 1] = rgb[j + 1] + (cg - rgb[j + 1]) * a
+        rgb[j + 2] = rgb[j + 2] + (cb - rgb[j + 2]) * a
 
 
 @jit
@@ -239,12 +271,17 @@ def render_ops(ops: list[Op], w: int, h: int) -> np.ndarray:
 
 
 @jit
+def _byte(v):
+    return min(255, max(0, round(v)))
+
+
+@jit
 def _to_rgba(rgb, n):
     out = np.empty(n * 4, dtype=np.uint8)
     for i in range(n):
-        out[i * 4] = u8c(rgb[i * 3])
-        out[i * 4 + 1] = u8c(rgb[i * 3 + 1])
-        out[i * 4 + 2] = u8c(rgb[i * 3 + 2])
+        out[i * 4] = _byte(rgb[i * 3])
+        out[i * 4 + 1] = _byte(rgb[i * 3 + 1])
+        out[i * 4 + 2] = _byte(rgb[i * 3 + 2])
         out[i * 4 + 3] = 255
     return out
 

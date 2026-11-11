@@ -15,7 +15,6 @@ import numpy as np
 from itd.banner.color import code_from_oklab, lab_of, oklab, oklab_code, to_hex
 from itd.banner.image import Rgba, downsample
 from itd.banner.jit import jit
-from itd.banner.jsmath import f32, hypot2, js_cos, js_round, js_sin
 from itd.banner.limits import MAX_OPS, MAX_WIDTH, Op
 
 SCALE = 2  # search on a half size picture: four times faster, a stroke thinner than 2 px does not pay off anyway
@@ -83,11 +82,11 @@ def _cover(P, r, w, h, idx, cov, mark, most, st):
                 i = y * w + x
                 if mark[i] != stamp:
                     mark[i] = stamp
-                    most[i] = f32(c)
+                    most[i] = c
                     idx[k] = i
                     k += 1
                 elif c > most[i]:
-                    most[i] = f32(c)
+                    most[i] = c
     for q in range(k):
         cov[q] = most[idx[q]]
     return k
@@ -157,16 +156,16 @@ def _mutate(P, r, r_max, st):
             f = max(0, m - 2) if j else min(1, m - 1)
             dx = P[e * 2] - P[f * 2]
             dy = P[e * 2 + 1] - P[f * 2 + 1]
-            ln = hypot2(dx, dy)
+            ln = math.hypot(dx, dy)
             if not ln:
                 th = _rnd(st) * math.pi * 2
-                dx = js_cos(th)
-                dy = js_sin(th)
+                dx = math.cos(th)
+                dy = math.sin(th)
                 ln = 1.0
             length = max(1.0, r) * (1 + _rnd(st) * 3)
             th = (_rnd(st) - 0.5) * 1.5
-            c = js_cos(th)
-            s = js_sin(th)
+            c = math.cos(th)
+            s = math.sin(th)
             nx = P[e * 2] + (dx * c - dy * s) / ln * length
             ny = P[e * 2 + 1] + (dx * s + dy * c) / ln * length
             if j:
@@ -183,7 +182,7 @@ def _mutate(P, r, r_max, st):
             ay = P[(j - 1) * 2 + 1]
             bx = P[j * 2]
             by = P[j * 2 + 1]
-            ln = hypot2(bx - ax, by - ay)
+            ln = math.hypot(bx - ax, by - ay)
             if not ln:
                 ln = 1.0
             out[: j * 2] = P[: j * 2]
@@ -229,7 +228,7 @@ def _pick(cum, n, st):
 def _init_e(C, T, n):
     E = np.zeros(n)
     for i in range(n):
-        E[i] = f32(_dist(C, T, i))
+        E[i] = _dist(C, T, i)
     return E
 
 
@@ -259,10 +258,10 @@ def _run(s0, s1, w, h, T, C, E, idx, cov, cum, mark, most, st, out_color, out_wi
             th = _rnd(st) * math.pi
             half = _rnd(st) * r * 2
             cand = np.empty(4)
-            cand[0] = x - js_cos(th) * half
-            cand[1] = y - js_sin(th) * half
-            cand[2] = x + js_cos(th) * half
-            cand[3] = y + js_sin(th) * half
+            cand[0] = x - math.cos(th) * half
+            cand[1] = y - math.sin(th) * half
+            cand[2] = x + math.cos(th) * half
+            cand[3] = y + math.sin(th) * half
             g, L, A, B = _score(cand, r, w, h, T, C, E, idx, cov, mark, most, st)
             if g > bg:
                 bg, bL, bA, bB = g, L, A, B
@@ -288,22 +287,22 @@ def _run(s0, s1, w, h, T, C, E, idx, cov, cum, mark, most, st, out_color, out_wi
             i = idx[q]
             j = i * 3
             a = cov[q]
-            C[j] = f32(C[j] + (l0 - C[j]) * a)
-            C[j + 1] = f32(C[j + 1] + (l1 - C[j + 1]) * a)
-            C[j + 2] = f32(C[j + 2] + (l2 - C[j + 2]) * a)
-            E[i] = f32(_dist(C, T, i))
+            C[j] = C[j] + (l0 - C[j]) * a
+            C[j + 1] = C[j + 1] + (l1 - C[j + 1]) * a
+            C[j + 2] = C[j + 2] + (l2 - C[j + 2]) * a
+            E[i] = _dist(C, T, i)
         o = st[I_COUNT]
         npts = 0
         for j in range(0, best.shape[0], 2):
-            px = js_round(best[j] * SCALE * 100) / 100
-            py = js_round(best[j + 1] * SCALE * 100) / 100
+            px = round(best[j] * SCALE * 100) / 100
+            py = round(best[j + 1] * SCALE * 100) / 100
             if not npts or out_pts[o, npts - 1, 0] != px or out_pts[o, npts - 1, 1] != py:
                 out_pts[o, npts, 0] = px
                 out_pts[o, npts, 1] = py
                 npts += 1
         out_n[o] = npts
         out_color[o] = code
-        out_width[o] = min(float(MAX_WIDTH), js_round(best_r * 2 * SCALE * 100) / 100)
+        out_width[o] = min(float(MAX_WIDTH), round(best_r * 2 * SCALE * 100) / 100)
         st[I_COUNT] += 1
 
 
@@ -314,7 +313,7 @@ def strokes(src: Rgba, count: int = MAX_OPS, on_progress: Callable[[float], None
     n = w * h
     T = lab_of(img.data, n)
     white = oklab(255, 255, 255)
-    C = np.tile(np.array([f32(v) for v in white]), n)
+    C = np.tile(np.array(white), n)
     E = _init_e(C, T, n)
     idx = np.zeros(n, dtype=np.int64)
     cov = np.zeros(n)

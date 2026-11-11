@@ -18,7 +18,6 @@ from itd.banner.engines.exact import exact
 from itd.banner.engines.layers import layers
 from itd.banner.engines.strokes import strokes
 from itd.banner.image import Adjust, Rgba, adjust, downsample
-from itd.banner.jsmath import f32, js_pow, js_round
 from itd.banner.limits import MAX_OPS, MAX_POINTS, Op, Stats, split_long, stats
 from itd.banner.metrics import Quality, compare
 from itd.banner.quantize import PaletteMode, Quantized, cohere, quantize
@@ -91,7 +90,7 @@ DEFAULTS = Params()
 
 def merge_lambda(v: float) -> float:
     """Связность 0…100 → штраф Поттса: 1e-4…3e-2 по логарифму, 0 = выключено."""
-    return 1e-4 * js_pow(300.0, v / 100) if v > 0 else 0.0
+    return 1e-4 * 300.0 ** (v / 100) if v > 0 else 0.0
 
 
 # Detail ladder from the most detailed to the coarsest. On photos it pays off most to drop small spots with a large
@@ -176,9 +175,9 @@ def _pal_lab(palette: list[str], white: bool) -> np.ndarray:
     lab = np.zeros((len(palette) + (1 if white else 0)) * 3)
     for k, h in enumerate(palette):
         c = from_hex(h)
-        lab[k * 3 : k * 3 + 3] = [f32(v) for v in oklab(c >> 16, (c >> 8) & 255, c & 255)]
+        lab[k * 3 : k * 3 + 3] = list(oklab(c >> 16, (c >> 8) & 255, c & 255))
     if white:
-        lab[len(palette) * 3 :] = [f32(v) for v in oklab(255, 255, 255)]
+        lab[len(palette) * 3 :] = list(oklab(255, 255, 255))
     return lab
 
 
@@ -247,8 +246,8 @@ class Session:
             for _ in range(full):
                 label = smooth_labels(g.width, g.height, label, K)
             if part > 0.01:
-                label = smooth_labels(g.width, g.height, label, K, 9 - int(js_round(part * 4)))
-            merge_small(g.width, g.height, label, K, max(1, int(js_round(d.min_area / (d.cell * d.cell)))), lab, True)
+                label = smooth_labels(g.width, g.height, label, K, 9 - round(part * 4))
+            merge_small(g.width, g.height, label, K, max(1, round(d.min_area / (d.cell * d.cell))), lab, True)
         abort_ops, abort_points = (MAX_OPS, MAX_POINTS) if limit else (0, 0)
         if p.engine == 'exact':
             ok, colors, starts, pts = exact(g.width, g.height, label, K, q.white, d.cell, abort_ops, abort_points)

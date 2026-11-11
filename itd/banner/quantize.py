@@ -7,6 +7,7 @@ graphics): otherwise a smooth transition breaks into as many bands as bins it to
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Literal
 
@@ -15,7 +16,6 @@ import numpy as np
 from itd.banner.color import code_from_oklab, from_hex, lab_of, oklab_f, rgb_code, to_hex
 from itd.banner.image import Rgba
 from itd.banner.jit import jit
-from itd.banner.jsmath import f32, hypot2
 from itd.banner.segment import potts
 
 PaletteMode = Literal['vivid', 'classic']
@@ -42,7 +42,7 @@ def _vivid_code(L, A, B, C, n):
     """Group color: mean lightness and hue, chroma = mean chroma of the pixels (the mean color washes it out)."""
     a = A / n
     b = B / n
-    c = hypot2(a, b)
+    c = math.hypot(a, b)
     k = C / n / c if c > 1e-6 else 1.0
     return code_from_oklab(L / n, a * k, b * k)
 
@@ -61,7 +61,7 @@ def _vivid_labels(cnt, lab0, lab1, lab2, colors):
         X[i * 3] = lab0[i] / c
         X[i * 3 + 1] = a * VIVID_HUE
         X[i * 3 + 2] = b * VIVID_HUE
-        wt[i] = c * (1 + VIVID_SAT * hypot2(a, b))
+        wt[i] = c * (1 + VIVID_SAT * math.hypot(a, b))
     C = np.zeros(colors * 3)
     K = 0
     pick = 0
@@ -128,7 +128,7 @@ def _vivid_palette(group, K, cnt, lab0, lab1, lab2):
         acc[g] += lab0[i]
         acc[g + 1] += lab1[i]
         acc[g + 2] += lab2[i]
-        acc[g + 3] += hypot2(lab1[i], lab2[i])
+        acc[g + 3] += math.hypot(lab1[i], lab2[i])
         acc[g + 4] += cnt[i]
     codes = np.full(K, -1, dtype=np.int64)
     for j in range(K):
@@ -333,7 +333,7 @@ def _pal_lab(palette: list[str]) -> np.ndarray:
     pal = np.zeros(len(palette) * 3)
     for i, h in enumerate(palette):
         c = from_hex(h)
-        pal[i * 3 : i * 3 + 3] = [f32(v) for v in oklab_f(float(c >> 16), float((c >> 8) & 255), float(c & 255))]
+        pal[i * 3 : i * 3 + 3] = list(oklab_f(float(c >> 16), float((c >> 8) & 255), float(c & 255)))
     return pal
 
 
@@ -347,7 +347,7 @@ def _cohere_vivid(label, lab, n, K, white, codes):
         acc[a] += lab[i * 3]
         acc[a + 1] += A
         acc[a + 2] += B
-        acc[a + 3] += hypot2(A, B)
+        acc[a + 3] += math.hypot(A, B)
         acc[a + 4] += 1
     for l in range(K):
         if l != white and acc[l * 5 + 4]:

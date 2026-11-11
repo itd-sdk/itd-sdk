@@ -11,7 +11,6 @@ import numpy as np
 
 from itd.banner.engines import to_arrays, widths_array
 from itd.banner.jit import jit
-from itd.banner.jsmath import f32, hypot2, js_round
 from itd.banner.limits import MAX_WIDTH
 from itd.banner.segment import count_parts
 
@@ -97,7 +96,7 @@ def _edt(cols, bw, t, tier, gy, gr, env, v, z, tD, tSite):
                 j += 1
             p = v[j]
             g = gy[o + p]
-            tD[o + x] = f32(math.sqrt((x - p) * (x - p) + g * g))
+            tD[o + x] = math.sqrt((x - p) * (x - p) + g * g)
             tSite[o + x] = gr[o + p] * cols + p
 
 
@@ -120,9 +119,9 @@ def _distance_field(cols, bw, tiers, ntiers, tier, D, site, sb, gy, gr, env, v, 
                 i = y * cols + x
                 e = tD[i] + a
                 if e < D[i]:
-                    D[i] = f32(e)
+                    D[i] = e
                     site[i] = tSite[i]
-                    sb[i] = f32(a)
+                    sb[i] = a
     max_d = 0.0
     reach = bw[B_REACH]
     x0 = max(wx0, bw[B_X0] - reach)
@@ -137,8 +136,8 @@ def _distance_field(cols, bw, tiers, ntiers, tier, D, site, sb, gy, gr, env, v, 
 @jit
 def _forb2(cols, rows, site, sb, px, py):
     # distance from a point to the nearest forbidden cell with its tolerance (by the nearest cells of neighbouring centers)
-    cx = int(js_round(px))
-    cy = int(js_round(py))
+    cx = round(px)
+    cy = round(py)
     best = np.inf
     for k in range(5):
         nx = cx + NX[k]
@@ -161,7 +160,7 @@ def _safe_seg(cols, rows, D, site, sb, ax, ay, bx, by, rr):
     # the segment between cell centers does not come closer than rr to forbidden cells (with their tolerance)
     if rr <= 0:
         return True
-    ln = hypot2(bx - ax, by - ay)
+    ln = math.hypot(bx - ax, by - ay)
     if (D[ay * cols + ax] + D[by * cols + bx] - ln) / 2 >= rr:
         return True
     n = math.ceil(ln * 2)
@@ -235,9 +234,9 @@ def _paint_seg(cols, rows, cell, T, touched, under, cov, cov_stamp, st, d_white,
                 st[S_LEFT] -= 1
             if cov_stamp[i] != cov_at:
                 cov_stamp[i] = cov_at
-                cov[i] = f32(c)
+                cov[i] = c
             elif c > cov[i]:
-                cov[i] = f32(c)
+                cov[i] = c
             if c >= 0.5:
                 under[i] = cur
             if c * d_white > eps:
@@ -668,8 +667,8 @@ def _tip(cols, rows, D, site, sb, t, prev):
     dx = t[0] - prev[0]
     dy = t[1] - prev[1]
     ln = max(abs(dx), abs(dy))
-    ex = t[0] + int(js_round(dx / ln))
-    ey = t[1] + int(js_round(dy / ln))
+    ex = t[0] + round(dx / ln)
+    ey = t[1] + round(dy / ln)
     return (ex, ey) if _tip_ok(cols, rows, D, site, sb, ex, ey, t[0], t[1]) else (-1 << 40, 0)
 
 
@@ -908,7 +907,7 @@ def layers(cols, rows, label, K, lab_pal, white, cell, tol, route_points, abort_
                         if len(out_pts) == n0 or out_pts[-1][0] != px or out_pts[-1][1] != py:
                             out_pts.append((px, py))
                     op_color.append(c)
-                    op_width.append(js_round(math.sqrt(2) * cell * 100) / 100 if wide else float((2 * m + 1) * cell))
+                    op_width.append(round(math.sqrt(2) * cell * 100) / 100 if wide else float((2 * m + 1) * cell))
                     op_start.append(len(out_pts))
                 _restore_uncovered(lab, T, st, claimed, cov, cov_stamp, under0, eps)
                 if (abort_ops and len(op_color) > abort_ops) or (abort_points and len(out_pts) > abort_points):

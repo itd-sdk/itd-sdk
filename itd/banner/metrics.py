@@ -1,12 +1,12 @@
 """How close the result is to the target: ΔE in OKLab ×100 (around 2 is nearly invisible)."""
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
 
 from itd.banner.color import oklab_code
 from itd.banner.jit import jit
-from itd.banner.jsmath import hypot3, js_round
 
 
 @dataclass
@@ -23,7 +23,7 @@ class Quality:
 def _codes(rgb, n):
     out = np.empty(n, dtype=np.int64)
     for i in range(n):
-        out[i] = (int(js_round(rgb[i * 3])) << 16) | (int(js_round(rgb[i * 3 + 1])) << 8) | int(js_round(rgb[i * 3 + 2]))
+        out[i] = (round(rgb[i * 3]) << 16) | (round(rgb[i * 3 + 1]) << 8) | round(rgb[i * 3 + 2])
     return out
 
 
@@ -33,7 +33,7 @@ def _compare(lab, inv, target, n, out):
     bad = 0
     for i in range(n):
         k = inv[i]
-        d = hypot3(lab[k, 0] - target[i * 3], lab[k, 1] - target[i * 3 + 1], lab[k, 2] - target[i * 3 + 2]) * 100
+        d = math.sqrt((lab[k, 0] - target[i * 3]) ** 2 + (lab[k, 1] - target[i * 3 + 1]) ** 2 + (lab[k, 2] - target[i * 3 + 2]) ** 2) * 100
         s += d
         if d > 5:
             bad += 1

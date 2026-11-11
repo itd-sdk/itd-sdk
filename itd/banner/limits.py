@@ -8,8 +8,6 @@ from dataclasses import dataclass, field
 from json import dumps
 from typing import Literal
 
-import numpy as np
-
 W = 1100
 H = 380
 
@@ -53,7 +51,7 @@ class Stats:
 
 
 def _num(v: float) -> int | float:
-    # JSON.stringify writes 100 for 100.0
+    # 100.0 is sent as 100: shorter body
     return int(v) if isinstance(v, float) and v.is_integer() and abs(v) < 1e21 else v
 
 
@@ -63,9 +61,7 @@ def drawing(ops: list[Op]) -> dict:
 
 
 def _json_len(ops: list[Op]) -> int:
-    text = dumps(drawing(ops), separators=(',', ':'), ensure_ascii=False)
-    # JS writes exponents as 1e-7 / 1e+21, Python as 1e-07 / 1e+21
-    return len(re.sub(r'e([+-])0(\d)', r'e\1\2', text))
+    return len(dumps(drawing(ops), separators=(',', ':'), ensure_ascii=False))
 
 
 def stats(ops: list[Op]) -> Stats:
@@ -111,36 +107,3 @@ def split_long(ops: list[Op]) -> list[Op]:
         for i in range(0, len(o.points) - 1, n - 1):
             out.append(Op(o.tool, o.color, o.width, o.points[i : i + n]))
     return out
-
-
-@dataclass
-class Packed:
-    """Штрихи в массивах для ядер: инструмент, цвет 0xRRGGBB, ширина, начало точек штриха в pts."""
-
-    tools: np.ndarray
-    colors: np.ndarray
-    widths: np.ndarray
-    starts: np.ndarray
-    pts: np.ndarray
-
-    def __len__(self) -> int:
-        return self.tools.shape[0]
-
-
-def pack(ops: list[Op]) -> Packed:
-    from itd.banner.color import from_hex
-
-    starts = np.zeros(len(ops) + 1, dtype=np.int64)
-    for k, o in enumerate(ops):
-        starts[k + 1] = starts[k] + len(o.points)
-    pts = np.zeros((int(starts[-1]), 2))
-    for k, o in enumerate(ops):
-        if o.points:
-            pts[starts[k] : starts[k + 1]] = o.points
-    return Packed(
-        np.array([TOOLS.index(o.tool) for o in ops], dtype=np.int64),
-        np.array([from_hex(o.color) for o in ops], dtype=np.int64),
-        np.array([float(o.width) for o in ops], dtype=np.float64),
-        starts,
-        pts
-    )
